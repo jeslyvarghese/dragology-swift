@@ -1,4 +1,4 @@
-@testable import DragologyCore
+@testable import DragologySwiftCore
 
 /// A two-position switch: the knob is at x = 30 or x = 90.
 struct ToggleState: Equatable {

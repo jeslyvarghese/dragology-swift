@@ -1,4 +1,4 @@
-import Dragology
+import DragologySwift
 import Foundation
 
 /// The overall size of the demo. The web version sets the cross-section

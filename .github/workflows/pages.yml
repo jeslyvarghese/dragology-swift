@@ -23,7 +23,7 @@ jobs:
       - name: Build the docs
         run: |
           xcodebuild docbuild \
-            -scheme Dragology \
+            -scheme dragology-swift \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath .build/docbuild
 
@@ -31,7 +31,7 @@ jobs:
         run: |
           mkdir -p _site
           cp -R site/. _site/
-          archive=$(find .build/docbuild -type d -name 'DragologyCore.doccarchive' | head -1)
+          archive=$(find .build/docbuild -type d -name 'DragologySwiftCore.doccarchive' | head -1)
           $(xcrun --find docc) process-archive transform-for-static-hosting "$archive" \
             --hosting-base-path docs \
             --output-path _site/docs

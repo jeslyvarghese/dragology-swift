@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dragology for iOS</title>
-  <meta name="description" content="An unofficial Swift port of Dragology: declarative dragging for iOS and SwiftUI.">
-  <meta property="og:title" content="Dragology for iOS">
-  <meta property="og:description" content="An unofficial Swift port of Dragology: declarative dragging for iOS and SwiftUI.">
+  <title>dragology-swift: an unofficial Dragology port</title>
+  <meta name="description" content="An unofficial Swift port of Dragology, the declarative dragging library by Horowitz, Blinn, and Heer.">
+  <meta property="og:title" content="dragology-swift: an unofficial Dragology port">
+  <meta property="og:description" content="An unofficial Swift port of Dragology, the declarative dragging library by Horowitz, Blinn, and Heer.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dragology.quadratic.xyz/">
   <meta property="og:image" content="https://dragology.quadratic.xyz/clips/permutation-lab.jpg">
@@ -178,16 +178,18 @@
 </head>
 <body>
   <main>
-    <h1>Dragology for iOS</h1>
+    <h1>dragology-swift</h1>
     <p class="byline">
-      A Swift port of <a href="https://github.com/declarative-dragging/dragology">Dragology</a>, created by
+      An unofficial Swift port of <a href="https://github.com/declarative-dragging/dragology">Dragology</a>.
+      Dragology and declarative dragging were created by
       <a href="https://joshuahhh.com/">Joshua Horowitz</a>,
-      <a href="https://andrewblinn.com/">Andrew Blinn</a>, and <a href="https://homes.cs.washington.edu/~jheer/">Jeffrey Heer</a>
+      <a href="https://andrewblinn.com/">Andrew Blinn</a>, and <a href="https://homes.cs.washington.edu/~jheer/">Jeffrey Heer</a>,
+      who aren't involved in this port.
     </p>
     <span class="badge">Unofficial port</span>
 
     <nav class="links" aria-label="Links">
-      <a class="primary" href="docs/documentation/dragologycore">docs</a>
+      <a class="primary" href="docs/documentation/dragologyswiftcore">docs</a>
       <a href="https://github.com/jeslyvarghese/dragology-swift">github</a>
       <a href="https://declarative-dragging.github.io/">original project</a>
       <a href="https://andrewblinn.com/papers/D2.pdf">the paper</a>
@@ -286,8 +288,8 @@ DraggableCanvas(state: $state, draggable: toggle)</code></pre>
     </p>
     <p>
       SwiftUI views can't be rendered speculatively or blended, so scenes are built from
-      <a href="docs/documentation/dragologycore/node"><code>Node</code></a>, a plain-data tree that plays the part of SVG,
-      and drawn by a SwiftUI <code>Canvas</code>. The <a href="docs/documentation/dragologycore/howitworks">docs</a> have the details.
+      <a href="docs/documentation/dragologyswiftcore/node"><code>Node</code></a>, a plain-data tree that plays the part of SVG,
+      and drawn by a SwiftUI <code>Canvas</code>. The <a href="docs/documentation/dragologyswiftcore/howitworks">docs</a> have the details.
     </p>
 
     <h2>Demos</h2>
@@ -309,10 +311,10 @@ DraggableCanvas(state: $state, draggable: toggle)</code></pre>
 
     <h2>Get started</h2>
     <p>Add the package to your app. It needs iOS 17 or macOS 14.</p>
-<pre><code>.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.1.0")</code></pre>
+<pre><code>.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.2.0")</code></pre>
     <p>
-      Then follow <a href="docs/documentation/dragologycore/gettingstarted">Getting Started</a>. The
-      <a href="docs/documentation/dragologycore/composingdrags">operator reference</a> has the full vocabulary.
+      Then follow <a href="docs/documentation/dragologyswiftcore/gettingstarted">Getting Started</a>. The
+      <a href="docs/documentation/dragologyswiftcore/composingdrags">operator reference</a> has the full vocabulary.
     </p>
 
     <h2>Status</h2>
@@ -323,7 +325,7 @@ DraggableCanvas(state: $state, draggable: toggle)</code></pre>
       <li>Scene content isn't available to VoiceOver yet.</li>
       <li>SwiftUI views can't go inside a scene, and the original's debug views aren't ported.</li>
     </ul>
-    <p>The <a href="docs/documentation/dragologycore/thingstoknow">docs</a> list these, along with how it differs from the web version.</p>
+    <p>The <a href="docs/documentation/dragologyswiftcore/thingstoknow">docs</a> list these, along with how it differs from the web version.</p>
 
     <h2>Credits</h2>
     <p>

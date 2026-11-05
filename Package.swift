@@ -2,19 +2,19 @@
 import PackageDescription
 
 let package = Package(
-    name: "Dragology",
+    name: "dragology-swift",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
-        .library(name: "Dragology", targets: ["Dragology"]),
+        .library(name: "DragologySwift", targets: ["DragologySwift"]),
     ],
     targets: [
         // UI-independent: math, scene tree, drag operators, and the engine.
-        .target(name: "DragologyCore"),
+        .target(name: "DragologySwiftCore"),
 
         // SwiftUI host. Depends on the core, never the other way around.
-        .target(name: "Dragology", dependencies: ["DragologyCore"]),
+        .target(name: "DragologySwift", dependencies: ["DragologySwiftCore"]),
 
-        .testTarget(name: "DragologyCoreTests", dependencies: ["DragologyCore"]),
-        .testTarget(name: "DragologyTests", dependencies: ["Dragology"]),
+        .testTarget(name: "DragologySwiftCoreTests", dependencies: ["DragologySwiftCore"]),
+        .testTarget(name: "DragologySwiftTests", dependencies: ["DragologySwift"]),
     ]
 )

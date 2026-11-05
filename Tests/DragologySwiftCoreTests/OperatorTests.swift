@@ -1,5 +1,5 @@
 import Testing
-@testable import DragologyCore
+@testable import DragologySwiftCore
 
 /// A dot at `x`, plus a target zone with its own id.
 private struct Dot: Equatable {

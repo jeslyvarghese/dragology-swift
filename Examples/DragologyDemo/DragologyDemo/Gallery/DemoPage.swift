@@ -1,4 +1,4 @@
-import Dragology
+import DragologySwift
 import SwiftUI
 
 private enum Layout {

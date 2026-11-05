@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: This is an unofficial port. Please cite the original paper.
-title: Dragology for iOS
+title: dragology-swift
 type: software
 authors:
   - given-names: Jesly

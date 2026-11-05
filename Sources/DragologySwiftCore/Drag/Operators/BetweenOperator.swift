@@ -30,7 +30,7 @@ final class BetweenOperator<State: Equatable>: Operator<State> {
     }
 
     private static var logger: Logger {
-        Logger(subsystem: "Dragology", category: "between")
+        Logger(subsystem: "dragology-swift", category: "between")
     }
 
     private let options: BetweenOptions

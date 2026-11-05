@@ -1,9 +1,9 @@
-# Dragology for iOS
+# dragology-swift
 
-An unofficial Swift port of [Dragology](https://github.com/declarative-dragging/dragology),
-the library behind [Declarative Dragging](https://declarative-dragging.github.io/)
-by [Joshua Horowitz](https://joshuahhh.com/),
-[Andrew Blinn](https://andrewblinn.com/), and [Jeffrey Heer](https://homes.cs.washington.edu/~jheer/) (UIST 2026). It isn't affiliated with or endorsed by the original authors.
+An unofficial Swift port of [Dragology](https://github.com/declarative-dragging/dragology).
+Dragology and [Declarative Dragging](https://declarative-dragging.github.io/) were created by
+[Joshua Horowitz](https://joshuahhh.com/), [Andrew Blinn](https://andrewblinn.com/), and
+[Jeffrey Heer](https://homes.cs.washington.edu/~jheer/), who aren't involved in this port.
 
 You don't write gesture handlers. You write a pure function from state to a scene,
 and declare which states each element can be dragged to. The engine renders those
@@ -11,21 +11,21 @@ states speculatively, finds where the element lands in each, and builds the drag
 drop zones, previews, and animation.
 
 **[Site](https://dragology.quadratic.xyz/)** ·
-**[Docs](https://dragology.quadratic.xyz/docs/documentation/dragologycore)**
+**[Docs](https://dragology.quadratic.xyz/docs/documentation/dragologyswiftcore)**
 
 ## Install
 
-Add this package with Swift Package Manager, and depend on the `Dragology` product.
+Add this package with Swift Package Manager, and depend on the `DragologySwift` product.
 Requires iOS 17 or macOS 14.
 
 ```swift
-.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.1.0")
+.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.2.0")
 ```
 
 ## Example
 
 ```swift
-import Dragology
+import DragologySwift
 import SwiftUI
 
 struct ToggleState: Equatable {

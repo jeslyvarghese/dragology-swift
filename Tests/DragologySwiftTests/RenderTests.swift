@@ -1,7 +1,7 @@
 import CoreGraphics
 import SwiftUI
 import Testing
-@testable import Dragology
+@testable import DragologySwift
 
 private struct Empty: Equatable {}
 

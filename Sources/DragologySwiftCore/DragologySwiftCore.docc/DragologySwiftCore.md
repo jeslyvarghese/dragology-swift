@@ -1,19 +1,20 @@
-# ``DragologyCore``
+# ``DragologySwiftCore``
 
 Build drag interactions by declaring what an element can become.
 
 ## Overview
 
-Dragology for iOS is an unofficial Swift port of
-[Dragology](https://github.com/declarative-dragging/dragology), the library behind
-[Declarative Dragging](https://declarative-dragging.github.io/) by [Joshua Horowitz](https://joshuahhh.com/),
-[Andrew Blinn](https://andrewblinn.com/), and [Jeffrey Heer](https://homes.cs.washington.edu/~jheer/).
+dragology-swift is an unofficial Swift port of
+[Dragology](https://github.com/declarative-dragging/dragology). Dragology and
+[Declarative Dragging](https://declarative-dragging.github.io/) were created by
+[Joshua Horowitz](https://joshuahhh.com/), [Andrew Blinn](https://andrewblinn.com/), and
+[Jeffrey Heer](https://homes.cs.washington.edu/~jheer/), who aren't involved in this port.
 
 You write a pure function from state to a scene, and say which states each element can
 be dragged to. The engine renders those states speculatively, finds where the element
 lands in each one, and builds the drag from that: drop zones, previews, and animation.
 
-Add the `Dragology` product to your app. It brings in this module, along with
+Add the `DragologySwift` product to your app. It brings in this module, along with
 `DraggableCanvas`, the SwiftUI view that hosts a scene.
 
 ## Topics

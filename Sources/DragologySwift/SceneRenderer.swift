@@ -1,4 +1,4 @@
-import DragologyCore
+import DragologySwiftCore
 import SwiftUI
 
 /// Draws scene layers into a SwiftUI graphics context.
@@ -22,7 +22,7 @@ enum SceneRenderer {
         }
     }
 
-    private static func drawShape(_ shape: DragologyCore.Shape, style: Style, in context: GraphicsContext) {
+    private static func drawShape(_ shape: DragologySwiftCore.Shape, style: Style, in context: GraphicsContext) {
         if case .text(let string, let size) = shape {
             drawText(string, size: size, style: style, in: context)
             return
@@ -67,7 +67,7 @@ private extension Color {
 
 private extension Path {
     /// Nil for shapes with no outline.
-    init?(_ shape: DragologyCore.Shape) {
+    init?(_ shape: DragologySwiftCore.Shape) {
         switch shape {
         case .none, .text:
             return nil

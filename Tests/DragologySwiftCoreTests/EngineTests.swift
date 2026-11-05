@@ -1,5 +1,5 @@
 import Testing
-@testable import DragologyCore
+@testable import DragologySwiftCore
 
 @Suite struct BetweenDragTests {
     @Test func theKnobBlendsAndDropsOnTheNearestState() {

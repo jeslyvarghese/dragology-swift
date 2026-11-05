@@ -1,5 +1,5 @@
 import Testing
-@testable import DragologyCore
+@testable import DragologySwiftCore
 
 @Suite struct TriangulationTests {
     @Test func twoPointsBlendAlongTheirEdge() {

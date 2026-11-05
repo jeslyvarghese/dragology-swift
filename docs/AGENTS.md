@@ -1,7 +1,7 @@
-# Using Dragology for iOS
+# Using dragology-swift
 
 Notes for coding agents. The full guide is at
-https://dragology.quadratic.xyz/docs/documentation/dragologycore.
+https://dragology.quadratic.xyz/docs/documentation/dragologyswiftcore.
 
 A scene is a pure function from state to a `Node` tree. Elements declare the states they can
 be dragged to, and the engine does the rest.

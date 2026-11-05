@@ -8,10 +8,10 @@ In Xcode, choose **File > Add Package Dependencies** and enter
 `https://github.com/jeslyvarghese/dragology-swift`. Or add it to `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.1.0")
+.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.2.0")
 ```
 
-Then depend on the `Dragology` product. It needs iOS 17 or macOS 14.
+Then depend on the `DragologySwift` product. It needs iOS 17 or macOS 14.
 
 ## Describe your state
 
@@ -29,7 +29,7 @@ A render function turns state into a scene. Write it as a `func`: Swift 6 reject
 global `let` closure.
 
 ```swift
-import Dragology
+import DragologySwift
 import SwiftUI
 
 func toggle(_ context: RenderContext<ToggleState>) -> Node<ToggleState> {

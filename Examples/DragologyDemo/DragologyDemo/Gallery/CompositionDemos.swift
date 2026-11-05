@@ -1,4 +1,4 @@
-import Dragology
+import DragologySwift
 import Foundation
 
 // MARK: - Snap to islands

@@ -1,4 +1,4 @@
-import Dragology
+import DragologySwift
 import SwiftUI
 
 @main
@@ -39,7 +39,7 @@ struct GalleryScreen: View {
                     }
                 }
             }
-            .navigationTitle("Dragology")
+            .navigationTitle("dragology-swift")
             .navigationDestination(for: String.self) { title in
                 DemoCatalog.demo(titled: title)?.makeView()
                     .navigationTitle(title)

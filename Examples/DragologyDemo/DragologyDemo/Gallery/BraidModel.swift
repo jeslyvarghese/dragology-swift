@@ -1,4 +1,4 @@
-import Dragology
+import DragologySwift
 import Foundation
 
 // The braid group B_n, ported from Dragology's braid demo.

@@ -1,5 +1,5 @@
 import Testing
-@testable import DragologyCore
+@testable import DragologySwiftCore
 
 private struct Empty: Equatable {}
 

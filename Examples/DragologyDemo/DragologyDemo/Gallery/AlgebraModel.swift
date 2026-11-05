@@ -1,4 +1,4 @@
-import Dragology
+import DragologySwift
 import Foundation
 
 // A small term-rewriting engine, ported from Dragology's algebra demos.

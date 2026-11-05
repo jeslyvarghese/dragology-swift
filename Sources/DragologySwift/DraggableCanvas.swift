@@ -1,4 +1,4 @@
-@_exported import DragologyCore
+@_exported import DragologySwiftCore
 import SwiftUI
 
 /// Hosts a `Draggable` in SwiftUI: routes touches to the engine, runs

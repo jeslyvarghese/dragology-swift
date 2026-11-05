@@ -1,4 +1,4 @@
-import Dragology
+import DragologySwift
 import Foundation
 
 /// The web version is 680 points wide. On a phone the views stack instead

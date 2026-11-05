@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10000000000000000000001 /* Dragology in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000002 /* Dragology */; };
+		A10000000000000000000001 /* DragologySwift in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000002 /* DragologySwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,7 +35,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000001 /* Dragology in Frameworks */,
+				A10000000000000000000001 /* DragologySwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -87,7 +87,7 @@
 			);
 			name = DragologyDemo;
 			packageProductDependencies = (
-				A10000000000000000000002 /* Dragology */,
+				A10000000000000000000002 /* DragologySwift */,
 			);
 			productName = DragologyDemo;
 			productReference = A10000000000000000000004 /* DragologyDemo.app */;
@@ -312,9 +312,9 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A10000000000000000000002 /* Dragology */ = {
+		A10000000000000000000002 /* DragologySwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = Dragology;
+			productName = DragologySwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

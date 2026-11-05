@@ -1,4 +1,4 @@
-import Dragology
+import DragologySwift
 import Foundation
 
 // Permutation math for the lab, ported from Dragology's demo. The state
