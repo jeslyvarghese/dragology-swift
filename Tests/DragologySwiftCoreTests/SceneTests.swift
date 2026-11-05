@@ -107,6 +107,56 @@ private struct Empty: Equatable {}
     }
 }
 
+@Suite struct SceneLayoutTests {
+    @Test func aColumnStacksByEachChildsHeight() {
+        let root: SceneNode<Empty> = SceneColumn(spacing: 10) {
+            SceneRect(width: 50, height: 20).id("a")
+            SceneRect(width: 50, height: 30).id("b")
+            SceneRect(width: 50, height: 5).id("c")
+        }
+
+        let scene = LayeredScene(root: root)
+
+        #expect(scene.origin(of: "a") == Vec2(0, 0))
+        #expect(scene.origin(of: "b") == Vec2(0, 30))
+        #expect(scene.origin(of: "c") == Vec2(0, 70))
+    }
+
+    @Test func aRowHandlesShapesCenteredOnTheOrigin() {
+        let root: SceneNode<Empty> = SceneRow(spacing: 5) {
+            SceneCircle(radius: 10).id("a")
+            SceneRect(width: 40, height: 40).id("b")
+        }
+
+        let scene = LayeredScene(root: root)
+
+        // A circle's center sits a radius in from its box's corner.
+        #expect(scene.origin(of: "a") == Vec2(10, 10))
+        #expect(scene.origin(of: "b") == Vec2(25, 0))
+    }
+
+    @Test func alignmentUsesTheSpareRoom() {
+        let root: SceneNode<Empty> = SceneColumn(alignment: .center) {
+            SceneRect(width: 100, height: 10).id("wide")
+            SceneRect(width: 40, height: 10).id("narrow")
+        }
+
+        #expect(LayeredScene(root: root).origin(of: "narrow") == Vec2(30, 10))
+    }
+
+    @Test func aChildsOwnTransformStillCounts() {
+        let root: SceneNode<Empty> = SceneColumn {
+            SceneRect(width: 10, height: 10).id("a").transform(.translate(500, 500))
+            SceneRect(width: 10, height: 10).id("b")
+        }
+
+        let scene = LayeredScene(root: root)
+
+        #expect(scene.origin(of: "a") == Vec2(0, 0))
+        #expect(scene.origin(of: "b") == Vec2(0, 10))
+    }
+}
+
 @Suite struct ShapeTests {
     @Test func aSlotIsHitAcrossItsSizeWithNoFill() {
         let shape = SceneShape.slot(size: Vec2(100, 50))
