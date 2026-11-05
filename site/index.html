@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dragology for iOS</title>
+  <meta name="description" content="An unofficial Swift port of Dragology: declarative dragging for iOS and SwiftUI.">
+  <meta property="og:title" content="Dragology for iOS">
+  <meta property="og:description" content="An unofficial Swift port of Dragology: declarative dragging for iOS and SwiftUI.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jeslyvarghese.github.io/dragology-swift/">
+  <meta property="og:image" content="https://jeslyvarghese.github.io/dragology-swift/clips/permutation-lab.jpg">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23175cd3'/%3E%3Ccircle cx='21' cy='16' r='7' fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cutive+Mono&family=Open+Sans:wght@300;400&family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #1d1d1f;
+      --muted: #6b6b70;
+      --rule: #e4e6ea;
+      --paper: #fbfcfd;
+      --card: #ffffff;
+      --accent: #175cd3;
+      --pill-edge: #a4a8b0;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --ink: #eceef1;
+        --muted: #a0a4ab;
+        --rule: #2d3036;
+        --paper: #15171a;
+        --card: #1e2125;
+        --accent: #7aa7ff;
+        --pill-edge: #000;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Open Sans", system-ui, sans-serif;
+      font-weight: 300;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+
+    main { max-width: 46rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-color: var(--accent);
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 3px;
+    }
+
+    a:hover { color: var(--paper); background: var(--accent); text-decoration: none; }
+
+    strong { font-weight: 400; }
+
+    h1 {
+      font-weight: 300;
+      font-size: clamp(2.4rem, 7vw, 3.6rem);
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin: 1.2rem 0 0.6rem;
+    }
+
+    h2 { font-weight: 300; font-size: 1.7rem; margin: 3rem 0 0.75rem; }
+
+    .byline { margin: 0; font-size: 1.05rem; }
+
+    .badge {
+      display: inline-block;
+      margin: 1.1rem 0 0;
+      padding: 0.15rem 0.8rem;
+      background: var(--accent);
+      color: var(--paper);
+      font-family: "Silkscreen", "Cutive Mono", monospace;
+      font-size: 0.8rem;
+      transform: rotate(-1.2deg);
+    }
+
+    nav.links { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 1.85rem 0 2.2rem; }
+
+    /* Hand-drawn corners, a little different on each pill. */
+    .links a {
+      font-family: "Silkscreen", "Cutive Mono", monospace;
+      font-size: 0.874rem;
+      text-decoration: none;
+      color: var(--ink);
+      background: var(--card);
+      border: 1px solid var(--ink);
+      padding: 0.25rem 0.85rem;
+      border-radius: 18px 12px 16px 10px / 12px 16px 10px 15px;
+      box-shadow: 0 3px 0 var(--pill-edge);
+      transition: translate 0.06s ease-out, box-shadow 0.06s ease-out;
+    }
+
+    .links a:nth-child(2) { border-radius: 12px 18px 11px 17px / 16px 10px 15px 11px; }
+    .links a:nth-child(3) { border-radius: 16px 10px 18px 13px / 11px 15px 12px 17px; }
+    .links a:nth-child(4) { border-radius: 10px 17px 13px 18px / 15px 12px 17px 10px; }
+
+    .links a.primary { background: var(--ink); color: var(--paper); }
+    .links a:hover { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+    .links a:active { translate: 0 3px; box-shadow: none; }
+
+    .hook { font-size: 1.45rem; line-height: 1.35; margin: 0 0 1.2rem; }
+
+    pre {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      overflow-x: auto;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.86em; }
+
+    .hero { display: flex; justify-content: center; margin: 2rem 0 0.5rem; }
+
+    .hero video {
+      width: min(100%, 22rem);
+      border-radius: 16px;
+      border: 1px solid var(--rule);
+      display: block;
+    }
+
+    .note { color: var(--muted); font-size: 0.9rem; text-align: center; margin: 0.4rem 0 0; }
+
+    figure { margin: 1.5rem 0; }
+    figure svg { width: 100%; height: auto; display: block; }
+    figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; }
+
+    .demos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; margin: 1.5rem 0; }
+
+    .card {
+      display: block;
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: 12px;
+      overflow: hidden;
+      text-decoration: none;
+    }
+
+    .card video { width: 100%; aspect-ratio: 3 / 4; display: block; object-fit: cover; }
+
+    .card span {
+      display: block;
+      padding: 0.35rem 0.6rem;
+      font-family: "Cutive Mono", monospace;
+      font-size: 0.9rem;
+    }
+
+    .card:hover { background: var(--accent); color: var(--paper); }
+
+    ul { padding-left: 1.2rem; }
+    li { margin: 0.25rem 0; }
+
+    footer { color: var(--muted); font-size: 0.9rem; margin-top: 3rem; border-top: 1px solid var(--rule); padding-top: 1rem; }
+
+    @media (max-width: 560px) {
+      .demos { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .links a { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Dragology for iOS</h1>
+    <p class="byline">
+      A Swift port by <a href="https://github.com/jeslyvarghese">Jesly Varghese</a> of
+      <a href="https://github.com/declarative-dragging/dragology">Dragology</a>, by Joshua Horowitz,
+      Andrew Blinn, and Jeffrey Heer
+    </p>
+    <span class="badge">Unofficial port</span>
+
+    <nav class="links" aria-label="Links">
+      <a class="primary" href="docs/documentation/dragologycore">docs</a>
+      <a href="https://github.com/jeslyvarghese/dragology-swift">github</a>
+      <a href="https://declarative-dragging.github.io/">original project</a>
+      <a href="https://andrewblinn.com/papers/D2.pdf">the paper</a>
+    </nav>
+
+    <p class="hook">Tell SwiftUI what an element can turn into, and let the drag work itself out.</p>
+
+    <p>
+      Good drag interactions usually take a lot of careful code: hit regions, offsets, snapping,
+      animation. <a href="https://declarative-dragging.github.io/">Declarative dragging</a> is a
+      different way to build them, from a UIST 2026 paper. You draw your state, and list the states each
+      element can be dragged to. The library does the geometry.
+    </p>
+    <p>
+      This package brings that idea to iOS. It's a from-scratch Swift port of the web library, with
+      every drag operator, a SwiftUI host, and a gallery of more than thirty demos, most of them
+      adapted from the original.
+    </p>
+
+    <div class="hero">
+      <video src="clips/permutation-lab.mp4" poster="clips/permutation-lab.jpg" autoplay muted loop playsinline preload="metadata" aria-label="A permutation shown five ways on an iPhone, with a 3D solid being turned and a tile being dragged."></video>
+    </div>
+    <p class="note">Permutation Lab, driven by real touches on an iPhone simulator.</p>
+
+    <h2>A whole switch</h2>
+    <p>This is all the code for a toggle. Nothing in it mentions touches, offsets, or animation.</p>
+<pre><code>func toggle(_ context: RenderContext&lt;ToggleState&gt;) -&gt; Node&lt;ToggleState&gt; {
+    group {
+        rect(width: 120, height: 60, cornerRadius: 30)
+            .fill(context.state.isOn ? RGBA(hex: 0x22C55E) : RGBA(hex: 0xD1D5DB))
+
+        circle(radius: 26)
+            .id("knob")
+            .fill(.white)
+            .transform(.translate(context.state.isOn ? 90 : 30, 30))
+            .onDrag {
+                context.d.between([ToggleState(isOn: false), ToggleState(isOn: true)])
+            }
+    }
+}
+
+DraggableCanvas(state: $state, draggable: toggle)</code></pre>
+
+    <h2>How it works</h2>
+    <p>
+      When a drag starts, the library calls your own render function on each state you listed. Where the
+      element lands in each of those renders tells it where the targets are. Those few positions are enough
+      to build the whole interaction.
+    </p>
+
+    <figure>
+      <svg viewBox="0 0 720 200" role="img" aria-label="Three steps. A state goes through a render function to give a scene. Each reachable state is rendered, giving a target position. The positions become a drag between them.">
+        <style>
+          .d-box { fill: var(--card); stroke: var(--rule); stroke-width: 1.5; }
+          .d-text { fill: var(--ink); font: 300 14px "Open Sans", sans-serif; text-anchor: middle; }
+          .d-mono { fill: var(--muted); font: 12px ui-monospace, Menlo, monospace; text-anchor: middle; }
+          .d-dot { fill: var(--accent); }
+          .d-ghost { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 4 4; }
+          .d-line { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+          .d-track { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; opacity: 0.35; }
+        </style>
+        <defs>
+          <marker id="tip" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0 0 L8 4 L0 8 Z" fill="var(--muted)"/>
+          </marker>
+        </defs>
+
+        <rect class="d-box" x="10" y="20" width="200" height="130" rx="12"/>
+        <text class="d-mono" x="110" y="52">isOn: false</text>
+        <text class="d-mono" x="110" y="74">isOn: true</text>
+        <text class="d-text" x="110" y="118">the states you listed</text>
+
+        <path class="d-line" d="M218 85 H252" marker-end="url(#tip)"/>
+
+        <rect class="d-box" x="260" y="20" width="200" height="130" rx="12"/>
+        <circle class="d-ghost" cx="315" cy="66" r="15"/>
+        <circle class="d-ghost" cx="405" cy="66" r="15"/>
+        <text class="d-text" x="360" y="118">rendered, to find positions</text>
+
+        <path class="d-line" d="M468 85 H502" marker-end="url(#tip)"/>
+
+        <rect class="d-box" x="510" y="20" width="200" height="130" rx="12"/>
+        <line class="d-track" x1="565" y1="66" x2="655" y2="66"/>
+        <circle class="d-dot" cx="600" cy="66" r="15"/>
+        <text class="d-text" x="610" y="118">blended into a live drag</text>
+
+        <text class="d-mono" x="360" y="186">your render function does the measuring</text>
+      </svg>
+      <figcaption>The drag comes from the same code that draws the scene, so it keeps working when the layout changes.</figcaption>
+    </figure>
+
+    <p>
+      Drags are also <strong>composable</strong>. Small behaviors combine into bigger ones, so
+      <code>d.closest(spots).withFloating().whenFar(free)</code> reads as what it does: float over the nearest spot,
+      and move freely when far from all of them.
+    </p>
+    <p>
+      SwiftUI views can't be rendered speculatively or blended, so scenes are built from
+      <a href="docs/documentation/dragologycore/node"><code>Node</code></a>, a plain-data tree that plays the part of SVG,
+      and drawn by a SwiftUI <code>Canvas</code>. The <a href="docs/documentation/dragologycore/howitworks">docs</a> have the details.
+    </p>
+
+    <h2>Demos</h2>
+    <p>
+      These clips are from the <a href="https://github.com/jeslyvarghese/dragology-swift/tree/main/Examples/DragologyDemo">demo app</a>,
+      which you can open in Xcode and run.
+    </p>
+    <div class="demos">
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/AnimateAlgebra.swift"><video src="clips/algebra.mp4" poster="clips/algebra.jpg" autoplay muted loop playsinline preload="metadata"></video><span>algebra</span></a>
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/TwistedTrees.swift"><video src="clips/twisted-trees.mp4" poster="clips/twisted-trees.jpg" autoplay muted loop playsinline preload="metadata"></video><span>twisted trees</span></a>
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/ContinuousDemos.swift"><video src="clips/bezier.mp4" poster="clips/bezier.jpg" autoplay muted loop playsinline preload="metadata"></video><span>bézier curve</span></a>
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/BraidDemo.swift"><video src="clips/braid.mp4" poster="clips/braid.jpg" autoplay muted loop playsinline preload="metadata"></video><span>braid</span></a>
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/ContinuousDemos.swift"><video src="clips/card-piles.mp4" poster="clips/card-piles.jpg" autoplay muted loop playsinline preload="metadata"></video><span>card piles</span></a>
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/FaceCreator.swift"><video src="clips/face.mp4" poster="clips/face.jpg" autoplay muted loop playsinline preload="metadata"></video><span>face</span></a>
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/DiscreteDemos.swift"><video src="clips/tromino.mp4" poster="clips/tromino.jpg" autoplay muted loop playsinline preload="metadata"></video><span>trominoes</span></a>
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/CompositionDemos.swift"><video src="clips/sprouting-tree.mp4" poster="clips/sprouting-tree.jpg" autoplay muted loop playsinline preload="metadata"></video><span>sprouting tree</span></a>
+      <a class="card" href="https://github.com/jeslyvarghese/dragology-swift/blob/main/Examples/DragologyDemo/DragologyDemo/Gallery/PermutationLab.swift"><video src="clips/permutation-lab.mp4" poster="clips/permutation-lab.jpg" autoplay muted loop playsinline preload="metadata"></video><span>permutation lab</span></a>
+    </div>
+
+    <h2>Get started</h2>
+    <p>Add the package to your app. It needs iOS 17 or macOS 14.</p>
+<pre><code>.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.1.0")</code></pre>
+    <p>
+      Then follow <a href="docs/documentation/dragologycore/gettingstarted">Getting Started</a>. The
+      <a href="docs/documentation/dragologycore/composingdrags">operator reference</a> has the full vocabulary.
+    </p>
+
+    <h2>Status</h2>
+    <p>This is an early release. A few things to know before you depend on it:</p>
+    <ul>
+      <li>It's been tested on the iOS simulator, but not yet on a physical iPhone, and performance hasn't been measured.</li>
+      <li>A canvas claims every touch, so it can't sit inside a <code>ScrollView</code> yet.</li>
+      <li>Scene content isn't available to VoiceOver yet.</li>
+      <li>SwiftUI views can't go inside a scene, and the original's debug views aren't ported.</li>
+    </ul>
+    <p>The <a href="docs/documentation/dragologycore/thingstoknow">docs</a> list these, along with how it differs from the web version.</p>
+
+    <h2>Credits</h2>
+    <p>
+      The ideas here belong to Joshua Horowitz, Andrew Blinn, and Jeffrey Heer. If you use this in research,
+      please cite <a href="https://andrewblinn.com/papers/D2.pdf">their paper</a>:
+    </p>
+<pre><code>@inproceedings{horowitz2026declarative,
+  title     = {Declarative Dragging},
+  author    = {Horowitz, Joshua and Blinn, Andrew and Heer, Jeffrey},
+  booktitle = {Proceedings of the 39th Annual ACM Symposium on
+               User Interface Software and Technology (UIST '26)},
+  year      = {2026}
+}</code></pre>
+
+    <footer>
+      An unofficial port, not affiliated with or endorsed by the original authors. MIT licensed, and
+      keeping <a href="https://github.com/declarative-dragging/dragology">Dragology</a>'s MIT notice.
+    </footer>
+  </main>
+</body>
+</html>

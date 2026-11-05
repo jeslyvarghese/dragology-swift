@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: This is an unofficial port. Please cite the original paper.
+title: Dragology for iOS
+type: software
+authors:
+  - given-names: Jesly
+    family-names: Varghese
+repository-code: https://github.com/jeslyvarghese/dragology-swift
+url: https://jeslyvarghese.github.io/dragology-swift/
+license: MIT
+preferred-citation:
+  type: conference-paper
+  title: Declarative Dragging
+  authors:
+    - given-names: Joshua
+      family-names: Horowitz
+    - given-names: Andrew
+      family-names: Blinn
+    - given-names: Jeffrey
+      family-names: Heer
+  collection-title: "Proceedings of the 39th Annual ACM Symposium on User Interface Software and Technology (UIST '26)"
+  year: 2026

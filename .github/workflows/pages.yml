@@ -1,0 +1,52 @@
+name: Site and docs
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the docs
+        run: |
+          xcodebuild docbuild \
+            -scheme Dragology \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath .build/docbuild
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp -R site/. _site/
+          archive=$(find .build/docbuild -type d -name 'DragologyCore.doccarchive' | head -1)
+          $(xcrun --find docc) process-archive transform-for-static-hosting "$archive" \
+            --hosting-base-path dragology-swift/docs \
+            --output-path _site/docs
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
