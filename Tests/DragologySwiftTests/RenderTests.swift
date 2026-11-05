@@ -40,6 +40,15 @@ private enum Fixture {
         #expect(moved.offset(at: 2) == 150)
     }
 
+    @Test func voiceOverMovesStopAtTheEnds() {
+        let layout = layout()
+
+        #expect(layout.stepMoves(from: 0).map(\.name) == ["Move down"])
+        #expect(layout.stepMoves(from: 1).map(\.name) == ["Move up", "Move down"])
+        #expect(layout.stepMoves(from: 2).map(\.name) == ["Move up"])
+        #expect(layout.stepMoves(from: 1)[0].layout.ids == ["b", "a", "c"])
+    }
+
     @Test func anEmptyListHasNoHeight() {
         #expect(DragListLayout<String>(ids: [], spacing: 10).totalHeight == 0)
     }

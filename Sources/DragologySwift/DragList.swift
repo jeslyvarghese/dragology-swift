@@ -13,8 +13,17 @@ public enum DragListStyle: Hashable, Sendable {
 
 extension EnvironmentValues {
     @Entry var dragListStyle = DragListStyle.floating()
-    @Entry var dragListRow: @MainActor (AnyHashable) -> AnyView = { _ in AnyView(EmptyView()) }
-    @Entry var dragListHeightReport: @MainActor (AnyHashable, Double) -> Void = { _, _ in }
+    @Entry var dragRow: @MainActor (AnyHashable) -> AnyView = { _ in AnyView(EmptyView()) }
+    @Entry var dragRowHeightReport: @MainActor (AnyHashable, Double) -> Void = { _, _ in }
+    @Entry var dragRowMoves: @MainActor (AnyHashable) -> [DragRowMove] = { _ in [] }
+}
+
+/// A way to move a row without dragging, offered to VoiceOver.
+struct DragRowMove: Identifiable {
+    var name: String
+    var perform: @MainActor () -> Void
+
+    var id: String { name }
 }
 
 extension View {
@@ -58,6 +67,16 @@ struct DragListLayout<ID: Hashable>: Equatable {
         copy.ids.insert(copy.ids.remove(at: source), at: destination)
         return copy
     }
+
+    /// The single-step moves available to the row at `index`.
+    func stepMoves(from index: Int) -> [(name: String, layout: DragListLayout)] {
+        var moves: [(name: String, layout: DragListLayout)] = []
+
+        if index > 0 { moves.append(("Move up", moving(from: index, to: index - 1))) }
+        if index < ids.count - 1 { moves.append(("Move down", moving(from: index, to: index + 1))) }
+
+        return moves
+    }
 }
 
 /// A list of your own views that the user can reorder by dragging.
@@ -90,12 +109,13 @@ public struct DragList<Item: Identifiable, Row: View>: View {
     }
 
     public var body: some View {
-        DragCanvas(state: $layout, scene: Self.scene(style: style))
+        DragCanvas(state: $layout, scene: DragListScenes.scene(for: Item.ID.self, style: style))
             .id(style)
             .dragActivation(activation ?? .longPress())
             .environment(\.externalStateTransition, nil)
-            .environment(\.dragListRow, rowView)
-            .environment(\.dragListHeightReport, recordHeight)
+            .environment(\.dragRow, rowView)
+            .environment(\.dragRowHeightReport, recordHeight)
+            .environment(\.dragRowMoves, rowMoves)
             .frame(height: layout.totalHeight)
             .frame(maxWidth: .infinity)
             .onGeometryChange(for: Double.self) { Double($0.size.width) } action: { layout.width = $0 }
@@ -119,6 +139,14 @@ public struct DragList<Item: Identifiable, Row: View>: View {
         return AnyView(row(item))
     }
 
+    private func rowMoves(_ key: AnyHashable) -> [DragRowMove] {
+        guard let id = key.base as? Item.ID, let index = layout.ids.firstIndex(of: id) else { return [] }
+
+        return layout.stepMoves(from: index).map { move in
+            DragRowMove(name: move.name) { layout = move.layout }
+        }
+    }
+
     private func recordHeight(_ key: AnyHashable, _ height: Double) {
         let tolerance = 0.5
 
@@ -134,38 +162,56 @@ public struct DragList<Item: Identifiable, Row: View>: View {
 
         items = ids.compactMap { byID[$0] }
     }
+}
 
-    private static func scene(style: DragListStyle) -> DragScene<DragListLayout<Item.ID>> {
+/// The scene behind a `DragList`.
+enum DragListScenes {
+    static func scene<ID: Hashable>(for _: ID.Type, style: DragListStyle) -> DragScene<DragListLayout<ID>> {
         { context in
             let layout = context.state
 
             // A row measured at no width would wrap down to a huge height.
             guard layout.width > 0 else { return SceneNode() }
 
-            let nodes = layout.ids.enumerated().map { index, id in
-                rowNode(id, index: index, style: style, context: context)
+            var nodes: [SceneNode<DragListLayout<ID>>] = []
+            var offset = 0.0
+
+            for (index, id) in layout.ids.enumerated() {
+                // Finding where a row lands takes only that row. A drag
+                // checks every order, so this is what keeps long lists fast.
+                if !context.isTracking || context.draggedID == rowID(id) {
+                    nodes.append(rowNode(id, index: index, offset: offset, style: style, context: context))
+                }
+
+                offset += layout.height(of: id) + layout.spacing
             }
 
             return SceneNode(children: nodes)
         }
     }
 
-    private static func rowNode(
-        _ id: Item.ID,
+    private static func rowID<ID: Hashable>(_ id: ID) -> String {
+        "row-\(id)"
+    }
+
+    private static func rowNode<ID: Hashable>(
+        _ id: ID,
         index: Int,
+        offset: Double,
         style: DragListStyle,
-        context: SceneContext<DragListLayout<Item.ID>>
-    ) -> SceneNode<DragListLayout<Item.ID>> {
+        context: SceneContext<DragListLayout<ID>>
+    ) -> SceneNode<DragListLayout<ID>> {
         let layout = context.state
-        let nodeID = "row-\(id)"
-        let key = AnyHashable(id)
+        let nodeID = rowID(id)
+        // Scenes are built and drawn on the main actor, in practice.
+        nonisolated(unsafe) let key = AnyHashable(id)
         let width = layout.width
 
         return DragItem(width: width, height: layout.height(of: id), interaction: .interactive) {
-            DragListRowHost(key: key, width: width)
+            DragRowHost(key: key, width: width)
         }
         .id(nodeID)
-        .transform(.translate(0, layout.offset(at: index)))
+        .transform(.translate(0, offset))
         .zIndex(context.draggedID == nodeID ? .absolute(1) : .relative(0))
         .onDrag {
             let orders = layout.ids.indices.map { layout.moving(from: index, to: $0) }
@@ -182,18 +228,26 @@ public struct DragList<Item: Identifiable, Row: View>: View {
     }
 }
 
-/// Shows a row at its natural height, and reports what that is.
-private struct DragListRowHost: View {
+/// Shows a row at its natural height, reports what that is, and offers
+/// its moves to VoiceOver.
+struct DragRowHost: View {
     let key: AnyHashable
     let width: Double
 
-    @Environment(\.dragListRow) private var row
-    @Environment(\.dragListHeightReport) private var reportHeight
+    @Environment(\.dragRow) private var row
+    @Environment(\.dragRowHeightReport) private var reportHeight
+    @Environment(\.dragRowMoves) private var moves
 
     var body: some View {
         row(key)
             .frame(width: width)
             .fixedSize(horizontal: false, vertical: true)
             .onGeometryChange(for: Double.self) { Double($0.size.height) } action: { reportHeight(key, $0) }
+            .accessibilityElement(children: .contain)
+            .accessibilityActions {
+                ForEach(moves(key)) { move in
+                    Button(move.name, action: move.perform)
+                }
+            }
     }
 }

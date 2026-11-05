@@ -63,17 +63,24 @@ enum SceneItem<State: Equatable>: Identifiable {
         var runIndex = 0
 
         for layer in scene.drawOrder {
-            run.append(layer)
+            // Only start a canvas for something to draw. A list of views
+            // would otherwise get a screen-filling canvas for every row.
+            if hasDrawing(layer.node) {
+                run.append(layer)
+            }
 
             let hosted = HostedItem.collect(in: layer.node, parent: .identity, opacity: 1)
 
             guard !hosted.isEmpty else { continue }
 
             // A layer's own drawing goes under the views it holds.
-            items.append(.drawing(index: runIndex, layers: run))
+            if !run.isEmpty {
+                items.append(.drawing(index: runIndex, layers: run))
+                run = []
+                runIndex += 1
+            }
+
             items += hosted.map(SceneItem.hosted)
-            run = []
-            runIndex += 1
         }
 
         if !run.isEmpty {
@@ -81,6 +88,15 @@ enum SceneItem<State: Equatable>: Identifiable {
         }
 
         return items
+    }
+}
+
+private func hasDrawing<State>(_ node: SceneNode<State>) -> Bool {
+    switch node.shape {
+    case .none, .slot:
+        return node.children.contains { hasDrawing($0) }
+    default:
+        return true
     }
 }
 
