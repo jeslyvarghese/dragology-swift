@@ -33,7 +33,7 @@ jobs:
           cp -R site/. _site/
           archive=$(find .build/docbuild -type d -name 'DragologyCore.doccarchive' | head -1)
           $(xcrun --find docc) process-archive transform-for-static-hosting "$archive" \
-            --hosting-base-path dragology-swift/docs \
+            --hosting-base-path docs \
             --output-path _site/docs
 
       - uses: actions/configure-pages@v5

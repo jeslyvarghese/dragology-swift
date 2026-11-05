@@ -10,8 +10,8 @@ and declare which states each element can be dragged to. The engine renders thos
 states speculatively, finds where the element lands in each, and builds the drag:
 drop zones, previews, and animation.
 
-**[Site](https://jeslyvarghese.github.io/dragology-swift/)** ·
-**[Docs](https://jeslyvarghese.github.io/dragology-swift/docs/documentation/dragologycore)**
+**[Site](https://dragology.quadratic.xyz/)** ·
+**[Docs](https://dragology.quadratic.xyz/docs/documentation/dragologycore)**
 
 ## Install
 
