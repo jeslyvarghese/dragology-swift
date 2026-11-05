@@ -6,8 +6,8 @@ Build drag interactions by declaring what an element can become.
 
 Dragology for iOS is an unofficial Swift port of
 [Dragology](https://github.com/declarative-dragging/dragology), the library behind
-[Declarative Dragging](https://declarative-dragging.github.io/) by Joshua Horowitz,
-Andrew Blinn, and Jeffrey Heer.
+[Declarative Dragging](https://declarative-dragging.github.io/) by [Joshua Horowitz](https://joshuahhh.com/),
+[Andrew Blinn](https://andrewblinn.com/), and [Jeffrey Heer](https://homes.cs.washington.edu/~jheer/).
 
 You write a pure function from state to a scene, and say which states each element can
 be dragged to. The engine renders those states speculatively, finds where the element

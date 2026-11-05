@@ -2,8 +2,8 @@
 
 An unofficial Swift port of [Dragology](https://github.com/declarative-dragging/dragology),
 the library behind [Declarative Dragging](https://declarative-dragging.github.io/)
-(Horowitz, Blinn, and Heer, UIST 2026). It isn't affiliated with or endorsed by the
-original authors.
+by [Joshua Horowitz](https://joshuahhh.com/),
+[Andrew Blinn](https://andrewblinn.com/), and [Jeffrey Heer](https://homes.cs.washington.edu/~jheer/) (UIST 2026). It isn't affiliated with or endorsed by the original authors.
 
 You don't write gesture handlers. You write a pure function from state to a scene,
 and declare which states each element can be dragged to. The engine renders those
