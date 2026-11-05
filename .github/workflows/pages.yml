@@ -33,8 +33,14 @@ jobs:
         run: |
           mkdir -p _site
           cp -R site/. _site/
-          archive=$(find .build/docbuild -type d -name 'DragologySwiftCore.doccarchive' | head -1)
-          $(xcrun --find docc) process-archive transform-for-static-hosting "$archive" \
+          products=$(dirname "$(find .build/docbuild -type d -name 'DragologySwift.doccarchive' | head -1)")
+          $(xcrun --find docc) merge \
+            "$products/DragologySwift.doccarchive" \
+            "$products/DragologySwiftCore.doccarchive" \
+            --output-path .build/merged.doccarchive \
+            --synthesized-landing-page-name dragology-swift \
+            --synthesized-landing-page-kind Package
+          $(xcrun --find docc) process-archive transform-for-static-hosting .build/merged.doccarchive \
             --hosting-base-path docs \
             --output-path _site/docs
 

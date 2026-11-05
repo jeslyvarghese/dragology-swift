@@ -77,6 +77,18 @@ and starts a fresh spec from there, so one drag can make a series of moves:
 drag.closest(steps).withSnapRadius(10, chaining: .chainOnSnap)
 ```
 
+## Laying out a scene
+
+`SceneRow` and `SceneColumn` stack their children by the space each one occupies, so you don't
+have to work out coordinates:
+
+```swift
+SceneColumn(spacing: 8) {
+    SceneRect(width: 100, height: 40)
+    SceneCircle(radius: 20)
+}
+```
+
 ## Your own operators
 
 Subclass ``DragOperator`` and override ``DragOperator/frame(_:)``, then wrap it with

@@ -141,6 +141,7 @@
     figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; }
 
     .demos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.9rem; margin: 1.5rem 0; }
+    .demos.pair { grid-template-columns: repeat(2, 1fr); }
 
     .card {
       display: block;
@@ -205,8 +206,8 @@
     </p>
     <p>
       This package brings that idea to iOS. It's a from-scratch Swift port of the web library, with
-      every drag operator, a SwiftUI host, and a gallery of more than thirty demos, most of them
-      adapted from the original.
+      every drag operator, drop-in views for common cases, and a gallery of more than thirty demos, most of
+      them adapted from the original.
     </p>
 
     <div class="hero">
@@ -214,8 +215,30 @@
     </div>
     <p class="note">Permutation Lab, driven by real touches on an iPhone simulator.</p>
 
-    <h2>A whole switch</h2>
-    <p>This is all the code for a toggle. Nothing in it mentions touches, offsets, or animation.</p>
+    <h2>Reorder anything</h2>
+    <p>
+      If you have an array, this is the whole integration. Your rows stay ordinary SwiftUI views: they size
+      themselves, keep their state, and their controls keep working.
+    </p>
+<pre><code>DragList($tasks) { task in
+    TaskRow(task: task)
+}</code></pre>
+    <p><code>DragBoard</code> does the same for columns of cards. Both work inside a <code>ScrollView</code>, and with VoiceOver.</p>
+<pre><code>DragBoard($columns, cards: \.cards) { column in
+    Text(column.title)
+} card: { card in
+    CardView(card: card)
+}</code></pre>
+    <div class="demos pair">
+      <div class="card"><video src="clips/drag-list.mp4" poster="clips/drag-list.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Rows of different heights being reordered."></video><span>DragList</span></div>
+      <div class="card"><video src="clips/drag-board.mp4" poster="clips/drag-board.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Cards being moved between columns."></video><span>DragBoard</span></div>
+    </div>
+
+    <h2>Build your own</h2>
+    <p>
+      Lists are the easy case. The same engine handles any drag you can describe. This is all the code for a
+      toggle, and nothing in it mentions touches, offsets, or animation.
+    </p>
 <pre><code>func toggle(_ context: SceneContext&lt;ToggleState&gt;) -&gt; SceneNode&lt;ToggleState&gt; {
     SceneGroup {
         SceneRect(width: 120, height: 60, cornerRadius: 30)
@@ -314,15 +337,18 @@ DragCanvas(state: $state, scene: toggle)</code></pre>
 <pre><code>.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.3.0")</code></pre>
     <p>
       Then follow <a href="docs/documentation/dragologyswiftcore/gettingstarted">Getting Started</a>. The
-      <a href="docs/documentation/dragologyswiftcore/composingdrags">operator reference</a> has the full vocabulary.
+      <a href="docs/documentation/dragologyswiftcore/composingdrags">operator guide</a> has the full vocabulary, and
+      <a href="docs/documentation/dragologyswift/draglist"><code>DragList</code></a> and
+      <a href="docs/documentation/dragologyswift/dragboard"><code>DragBoard</code></a> have their own pages.
     </p>
 
     <h2>Status</h2>
     <p>This is an early release. A few things to know before you depend on it:</p>
     <ul>
-      <li>It's been tested on the iOS simulator, but not yet on a physical iPhone, and performance hasn't been measured.</li>
+      <li>It's been tested on the iOS simulator, but not yet on a physical iPhone.</li>
+      <li><code>DragList</code> and <code>DragBoard</code> keep every row in memory. A few hundred rows stay smooth, and thousands won't.</li>
       <li>To scroll in a parent <code>ScrollView</code>, use <code>.dragActivation(.longPress())</code>.</li>
-      <li>Scene content isn't available to VoiceOver yet.</li>
+      <li>Drawn scene content isn't available to VoiceOver, though real views in a scene are.</li>
       <li>The original's debug views aren't ported.</li>
     </ul>
     <p>The <a href="docs/documentation/dragologyswiftcore/thingstoknow">docs</a> list these, along with how it differs from the web version.</p>

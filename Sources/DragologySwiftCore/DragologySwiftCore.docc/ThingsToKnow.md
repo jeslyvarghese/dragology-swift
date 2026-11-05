@@ -18,10 +18,13 @@ Rules of thumb, limitations, and how this differs from the web version.
 
 ## Limitations
 
+- `DragList` and `DragBoard` keep every row in memory, unlike `List`. A few hundred rows stay
+  smooth. Thousands won't, and they don't support sections or swipe actions.
+
 - To scroll in a parent `ScrollView`, use `.dragActivation(.longPress())`. With the default
   `.immediate`, a swipe that starts on a draggable element drags it.
 - It clips to its bounds, so leave room for anything dragged near the edges.
-- Scene content isn't exposed to VoiceOver yet.
+- Drawn scene content isn't exposed to VoiceOver, though real views in a scene are.
 - Only one touch at a time, as in the original.
 - In a `DragItem`, position and opacity animate, but what's inside the view doesn't blend.
 - Hit testing uses an estimated size for text.

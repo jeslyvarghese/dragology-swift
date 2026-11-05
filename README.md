@@ -33,6 +33,9 @@ DragList($tasks) { task in
 }
 ```
 
+`DragBoard` does the same for columns of cards. Both work inside a `ScrollView`, and VoiceOver
+users get move actions on every row.
+
 ## Build your own drag
 
 ```swift
@@ -144,11 +147,13 @@ For anything else, subclass `DragOperator` and wrap it with `DragSpec { context 
 
 ## Known limitations
 
+- `DragList` and `DragBoard` keep every row in memory, unlike `List`. A few hundred rows stay
+  smooth. Thousands won't, and they don't support sections or swipe actions.
 - To scroll in a parent `ScrollView`, use `.dragActivation(.longPress())`. With the default
   `.immediate`, a swipe that starts on a draggable element drags it.
 - `DragCanvas` clips to its bounds, so give it room for anything dragged near its
   edges. The web version lets content overflow.
-- Canvas content isn't exposed to VoiceOver yet.
+- Drawn scene content isn't exposed to VoiceOver, though real views in a scene are.
 - Hit testing uses an estimated size for text.
 - One touch at a time, like the original.
 

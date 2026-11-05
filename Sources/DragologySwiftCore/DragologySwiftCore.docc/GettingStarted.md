@@ -30,6 +30,20 @@ press picks up a row, so the list can sit in a `ScrollView`.
 To change how a dragged row behaves, add `.dragListStyle(.sliding)` or `.dragListStyle(.snapping)`.
 The default is `.floating()`, where the row follows the finger and the others make room.
 
+VoiceOver users get move actions on every row, with no work on your part.
+
+## Build a board
+
+`DragBoard` does the same for columns of cards, which can move within a column or between them:
+
+```swift
+DragBoard($columns, cards: \.cards) { column in
+    Text(column.title)
+} card: { card in
+    CardView(card: card)
+}
+```
+
 ## Build your own drag
 
 For anything beyond a list, you describe your state and draw it, and the rest of this article

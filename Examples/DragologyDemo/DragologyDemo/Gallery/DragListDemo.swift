@@ -30,7 +30,7 @@ private struct TaskRow: View {
                 .accessibilityIdentifier("done-\(task.id)")
         }
         .padding()
-        .background(.quaternary, in: .rect(cornerRadius: 12))
+        .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 12))
     }
 }
 
