@@ -195,6 +195,54 @@ final class GalleryTests: XCTestCase {
         expectOrder("Call,Plan,Pack,Read")
     }
 
+    // MARK: Drag board
+
+    private func expectBoard(_ expected: String) {
+        let order = app.staticTexts["boardOrder"]
+        let matches = NSPredicate { _, _ in order.label == expected }
+        let expectation = XCTNSPredicateExpectation(predicate: matches, object: nil)
+
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: Timing.settle), .completed, order.label)
+    }
+
+    private func dragCard(_ name: String, onto target: XCUIElement, dy: CGFloat = 0) {
+        let card = app.staticTexts["card-\(name)"]
+        XCTAssertTrue(card.waitForExistence(timeout: Timing.settle))
+
+        let start = card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let offset = CGVector(dx: target.frame.midX - card.frame.midX, dy: target.frame.midY - card.frame.midY + dy)
+
+        start.press(forDuration: 0.6, thenDragTo: start.withOffset(offset))
+    }
+
+    func testBoardMovesACardToAnEmptyColumn() {
+        open("Drag Board")
+        expectBoard("Todo:Design+Build the whole thing+Test Doing:Write Done:")
+
+        dragCard("Design", onto: app.staticTexts["column-Done"], dy: 50)
+
+        expectBoard("Todo:Build the whole thing+Test Doing:Write Done:Design")
+    }
+
+    func testBoardReordersWithinAColumn() {
+        open("Drag Board")
+
+        dragCard("Design", onto: app.staticTexts["card-Test"])
+
+        expectBoard("Todo:Build the whole thing+Test+Design Doing:Write Done:")
+    }
+
+    func testBoardCardsSizeThemselves() {
+        open("Drag Board")
+
+        let long = app.staticTexts["card-Build the whole thing"]
+        let next = app.staticTexts["card-Test"]
+        XCTAssertTrue(long.waitForExistence(timeout: Timing.settle))
+
+        // The long card wraps in its narrow column, and the next one clears it.
+        XCTAssertGreaterThan(next.frame.minY, long.frame.maxY)
+    }
+
     // MARK: Discrete states
 
     func testRingOfBeads() {

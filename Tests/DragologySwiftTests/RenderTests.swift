@@ -54,6 +54,51 @@ private enum Fixture {
     }
 }
 
+@Suite struct DragBoardLayoutTests {
+    private func layout() -> DragBoardLayout<String, String> {
+        var layout = DragBoardLayout<String, String>(
+            columns: [
+                .init(id: "a", cards: ["1", "2"]),
+                .init(id: "b", cards: []),
+            ],
+            spacing: 10
+        )
+        layout.width = 210
+        layout.heights = ["1": 40, "2": 60]
+        return layout
+    }
+
+    @Test func columnsShareTheWidth() {
+        let layout = layout()
+
+        #expect(layout.columnWidth == 100)
+        #expect(layout.columnX(1) == 110)
+    }
+
+    @Test func cardsStackBelowTheHeader() {
+        let layout = layout()
+        let header = DragBoardLayout<String, String>.headerHeight
+
+        #expect(layout.cardOffset(column: 0, index: 0) == header)
+        #expect(layout.cardOffset(column: 0, index: 1) == header + 50)
+    }
+
+    @Test func aCardCanReachEverySlot() {
+        let moves = layout().allMoves(from: (column: 0, index: 0))
+
+        // Two places in its own column, and one in the empty column.
+        #expect(moves.count == 3)
+        #expect(moves[2].columns[1].cards == ["1"])
+        #expect(moves[2].columns[0].cards == ["2"])
+    }
+
+    @Test func voiceOverMovesMatchTheNeighbors() {
+        let names = layout().stepMoves(from: (column: 0, index: 0)).map(\.name)
+
+        #expect(names == ["Move down", "Move right"])
+    }
+}
+
 /// The toggle from the docs and the site, word for word.
 private struct ToggleState: Equatable {
     var isOn = false

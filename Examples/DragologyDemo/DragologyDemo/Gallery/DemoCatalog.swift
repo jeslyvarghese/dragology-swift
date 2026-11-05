@@ -38,6 +38,8 @@ enum DemoCatalog {
 
             DemoEntry("Drag List", "DragList") { DragListScreen() },
 
+            DemoEntry("Drag Board", "DragBoard") { DragBoardScreen() },
+
             DemoEntry("Real SwiftUI Views", "DragItem, dragActivation") { RealViewsScreen() },
 
             DemoEntry("Three States", "closest, between, withFloating") {
