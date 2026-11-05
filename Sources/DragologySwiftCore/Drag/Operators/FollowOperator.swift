@@ -1,8 +1,8 @@
 import Foundation
 
 /// Starts out in a new state, dragging a different element.
-final class FollowOperator<State: Equatable>: Operator<State> {
-    private let inner: Operator<State>
+final class FollowOperator<State: Equatable>: DragOperator<State> {
+    private let inner: DragOperator<State>
 
     init(context: DragContext<State>, state: State, draggedID: String, followSpec: DragSpec<State>?) {
         var followContext = context

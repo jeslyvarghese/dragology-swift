@@ -2,7 +2,7 @@ import Foundation
 
 /// Continuously solves for the parameters that bring the dragged
 /// element to the pointer.
-final class VaryOperator<State: Equatable>: Operator<State> {
+final class VaryOperator<State: Equatable>: DragOperator<State> {
     private var minimizer: DistanceMinimizer
     private let stateFromParameters: ([Double]) -> State
     private let constraintValues: (([Double]) -> [Double])?
@@ -21,7 +21,7 @@ final class VaryOperator<State: Equatable>: Operator<State> {
         let pinTargets = pin?(stateFromParameters(initial)) ?? []
 
         let combined = { (state: State) -> [Double] in
-            let pinned = zip(pin?(state) ?? [], pinTargets).flatMap { Constraint.equal($0, $1) }
+            let pinned = zip(pin?(state) ?? [], pinTargets).flatMap { DragConstraint.equal($0, $1) }
             return (constraint?(state) ?? []) + pinned
         }
 
@@ -49,7 +49,7 @@ final class VaryOperator<State: Equatable>: Operator<State> {
         }
 
         return DragResult(
-            preview: Lazy { scene },
+            preview: LazyPreview { scene },
             dropState: state,
             gap: position.distance(to: frame.pointer),
             grabPosition: position

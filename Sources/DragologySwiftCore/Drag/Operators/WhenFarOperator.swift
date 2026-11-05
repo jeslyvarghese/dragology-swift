@@ -29,9 +29,9 @@ private enum WhenFarSegment {
 }
 
 /// Follows the foreground, or the background when it's too far away.
-final class WhenFarOperator<State: Equatable>: Operator<State> {
-    private let foreground: Operator<State>
-    private let background: Operator<State>
+final class WhenFarOperator<State: Equatable>: DragOperator<State> {
+    private let foreground: DragOperator<State>
+    private let background: DragOperator<State>
     private let gap: WhenFarGap
     private var isInForeground = true
 

@@ -5,15 +5,15 @@ struct ToggleState: Equatable {
     var isOn = false
 }
 
-func toggle(_ context: RenderContext<ToggleState>) -> Node<ToggleState> {
+func toggle(_ context: SceneContext<ToggleState>) -> SceneNode<ToggleState> {
     let knobX = context.state.isOn ? 90.0 : 30.0
 
-    return group {
-        circle(radius: 26)
+    return SceneGroup {
+        SceneCircle(radius: 26)
             .id("knob")
             .fill(.white)
             .transform(.translate(knobX, 30))
-            .onDrag { context.d.between([ToggleState(isOn: false), ToggleState(isOn: true)]) }
+            .onDrag { context.drag.between([ToggleState(isOn: false), ToggleState(isOn: true)]) }
     }
 }
 
@@ -22,14 +22,14 @@ struct SliderState: Equatable {
     var value = 100.0
 }
 
-func slider(_ context: RenderContext<SliderState>) -> Node<SliderState> {
-    circle(radius: 14)
+func slider(_ context: SceneContext<SliderState>) -> SceneNode<SliderState> {
+    SceneCircle(radius: 14)
         .id("thumb")
         .fill(.black)
         .transform(.translate(context.state.value, 0))
         .onDrag {
-            context.d.vary(context.state, \.value, constraint: { state in
-                Constraint.inOrder(0, state.value, 240)
+            context.drag.vary(context.state, \.value, constraint: { state in
+                DragConstraint.inOrder(0, state.value, 240)
             })
         }
 }
@@ -45,18 +45,18 @@ struct ListState: Equatable {
     }
 }
 
-func list(_ context: RenderContext<ListState>) -> Node<ListState> {
+func list(_ context: SceneContext<ListState>) -> SceneNode<ListState> {
     let state = context.state
 
-    return group {
+    return SceneGroup {
         for (index, item) in state.items.enumerated() {
-            rect(width: 100, height: 30)
+            SceneRect(width: 100, height: 30)
                 .id(item)
                 .fill(.white)
                 .transform(.translate(0, Double(index) * 40))
                 .onDrag {
                     let orders = state.items.indices.map { state.moving(from: index, to: $0) }
-                    return context.d.closest(orders).withFloating()
+                    return context.drag.closest(orders).withFloating()
                 }
         }
     }

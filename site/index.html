@@ -216,22 +216,22 @@
 
     <h2>A whole switch</h2>
     <p>This is all the code for a toggle. Nothing in it mentions touches, offsets, or animation.</p>
-<pre><code>func toggle(_ context: RenderContext&lt;ToggleState&gt;) -&gt; Node&lt;ToggleState&gt; {
-    group {
-        rect(width: 120, height: 60, cornerRadius: 30)
-            .fill(context.state.isOn ? RGBA(hex: 0x22C55E) : RGBA(hex: 0xD1D5DB))
+<pre><code>func toggle(_ context: SceneContext&lt;ToggleState&gt;) -&gt; SceneNode&lt;ToggleState&gt; {
+    SceneGroup {
+        SceneRect(width: 120, height: 60, cornerRadius: 30)
+            .fill(context.state.isOn ? SceneColor(hex: 0x22C55E) : SceneColor(hex: 0xD1D5DB))
 
-        circle(radius: 26)
+        SceneCircle(radius: 26)
             .id("knob")
             .fill(.white)
             .transform(.translate(context.state.isOn ? 90 : 30, 30))
             .onDrag {
-                context.d.between([ToggleState(isOn: false), ToggleState(isOn: true)])
+                context.drag.between([ToggleState(isOn: false), ToggleState(isOn: true)])
             }
     }
 }
 
-DraggableCanvas(state: $state, draggable: toggle)</code></pre>
+DragCanvas(state: $state, scene: toggle)</code></pre>
 
     <h2>How it works</h2>
     <p>
@@ -283,13 +283,13 @@ DraggableCanvas(state: $state, draggable: toggle)</code></pre>
 
     <p>
       Drags are also <strong>composable</strong>. Small behaviors combine into bigger ones, so
-      <code>d.closest(spots).withFloating().whenFar(free)</code> reads as what it does: float over the nearest spot,
+      <code>drag.closest(spots).withFloating().whenFar(free)</code> reads as what it does: float over the nearest spot,
       and move freely when far from all of them.
     </p>
     <p>
-      SwiftUI views can't be rendered speculatively or blended, so scenes are built from
-      <a href="docs/documentation/dragologyswiftcore/node"><code>Node</code></a>, a plain-data tree that plays the part of SVG,
-      and drawn by a SwiftUI <code>Canvas</code>. The <a href="docs/documentation/dragologyswiftcore/howitworks">docs</a> have the details.
+      SwiftUI can't lay out a state that isn't on screen, so scenes are built from
+      <a href="docs/documentation/dragologyswiftcore/scenenode"><code>SceneNode</code></a>, a plain-data tree that plays the part of SVG,
+      and drawn by a SwiftUI <code>Canvas</code>. Real SwiftUI views go in with <code>DragItem</code>. The <a href="docs/documentation/dragologyswiftcore/howitworks">docs</a> have the details.
     </p>
 
     <h2>Demos</h2>
@@ -310,8 +310,8 @@ DraggableCanvas(state: $state, draggable: toggle)</code></pre>
     </div>
 
     <h2>Get started</h2>
-    <p>Add the package to your app. It needs iOS 17 or macOS 14.</p>
-<pre><code>.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.2.0")</code></pre>
+    <p>Add the package to your app. It needs iOS 26 or macOS 26.</p>
+<pre><code>.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.3.0")</code></pre>
     <p>
       Then follow <a href="docs/documentation/dragologyswiftcore/gettingstarted">Getting Started</a>. The
       <a href="docs/documentation/dragologyswiftcore/composingdrags">operator reference</a> has the full vocabulary.
@@ -321,9 +321,9 @@ DraggableCanvas(state: $state, draggable: toggle)</code></pre>
     <p>This is an early release. A few things to know before you depend on it:</p>
     <ul>
       <li>It's been tested on the iOS simulator, but not yet on a physical iPhone, and performance hasn't been measured.</li>
-      <li>A canvas claims every touch, so it can't sit inside a <code>ScrollView</code> yet.</li>
+      <li>To scroll in a parent <code>ScrollView</code>, use <code>.dragActivation(.longPress())</code>.</li>
       <li>Scene content isn't available to VoiceOver yet.</li>
-      <li>SwiftUI views can't go inside a scene, and the original's debug views aren't ported.</li>
+      <li>The original's debug views aren't ported.</li>
     </ul>
     <p>The <a href="docs/documentation/dragologyswiftcore/thingstoknow">docs</a> list these, along with how it differs from the web version.</p>
 

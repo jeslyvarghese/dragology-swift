@@ -19,20 +19,23 @@ draws the scene.
 ## Why a scene tree, and not SwiftUI views
 
 This approach has to render hypothetical states, read positions out of them, and blend
-between them. SwiftUI views are opaque, so none of that is possible on them. ``Node`` is a
-plain-data scene tree that plays the part SVG plays on the web, and `DraggableCanvas` draws
+between them. SwiftUI views are opaque, so none of that is possible on them. ``SceneNode`` is a
+plain-data scene tree that plays the part SVG plays on the web, and `DragCanvas` draws
 it with a SwiftUI `Canvas`.
+
+To put a real SwiftUI view in a scene, use `DragItem`. The scene decides where the view goes,
+and SwiftUI draws what's in it, so its `@State` and controls keep working.
 
 ## Layers
 
-Any node with an ``Node/id`` becomes a separate layer. Layers are matched by id between
+Any node with an ``SceneNode/id`` becomes a separate layer. Layers are matched by id between
 renders, wherever they sit in each tree, so a node can change parents and still blend
 smoothly. A layer that exists in only one state fades, or grows out of another with
-``Node/emergeFrom(_:mode:)``.
+``SceneNode/emergeFrom(_:mode:)``.
 
 ## Behaviors
 
-A running spec is an ``Operator``. Each frame it takes a ``DragFrame`` and returns a
+A running spec is an ``DragOperator``. Each frame it takes a ``DragFrame`` and returns a
 ``DragResult``, whose main parts are a preview, a drop state, and a `gap`: how far the
 element is from the finger. Combinators like `closest` choose between their children by
 comparing gaps.

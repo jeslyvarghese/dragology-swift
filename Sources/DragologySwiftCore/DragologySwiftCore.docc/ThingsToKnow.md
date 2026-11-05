@@ -4,7 +4,7 @@ Rules of thumb, limitations, and how this differs from the web version.
 
 ## Rules of thumb
 
-- **Position with ``Node/transform(_:)``.** That's what the engine reads and blends.
+- **Position with ``SceneNode/transform(_:)``.** That's what the engine reads and blends.
 - **Give an id to anything that reorders, or that floats.** Ids match nodes across renders,
   and must be unique in the scene.
 - **Keep render functions pure.** They run on many hypothetical states per frame. The canvas
@@ -18,11 +18,12 @@ Rules of thumb, limitations, and how this differs from the web version.
 
 ## Limitations
 
-- `DraggableCanvas` claims every touch, so it blocks scrolling in a parent `ScrollView`.
+- To scroll in a parent `ScrollView`, use `.dragActivation(.longPress())`. With the default
+  `.immediate`, a swipe that starts on a draggable element drags it.
 - It clips to its bounds, so leave room for anything dragged near the edges.
 - Scene content isn't exposed to VoiceOver yet.
 - Only one touch at a time, as in the original.
-- SwiftUI views can't go inside a scene yet.
+- In a `DragItem`, position and opacity animate, but what's inside the view doesn't blend.
 - Hit testing uses an estimated size for text.
 
 ## Differences from the web version

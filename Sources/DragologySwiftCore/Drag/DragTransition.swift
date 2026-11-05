@@ -1,7 +1,7 @@
 import Foundation
 
 /// How an animated change plays out over time.
-public struct Transition: Sendable {
+public struct DragTransition: Sendable {
     public enum Easing: Sendable {
         case cubicOut
         case elasticOut
@@ -22,7 +22,7 @@ public struct Transition: Sendable {
     public var easing: Easing
     public var duration: TimeInterval
 
-    public static let standard = Transition(easing: .cubicOut, duration: standardDuration)
+    public static let standard = DragTransition(easing: .cubicOut, duration: standardDuration)
 
     public init(easing: Easing, duration: TimeInterval) {
         self.easing = easing
@@ -30,8 +30,8 @@ public struct Transition: Sendable {
     }
 
     /// The default duration, with a different easing.
-    public static func easing(_ easing: Easing) -> Transition {
-        Transition(easing: easing, duration: standardDuration)
+    public static func easing(_ easing: Easing) -> DragTransition {
+        DragTransition(easing: easing, duration: standardDuration)
     }
 
     /// Progress after `elapsed` seconds. Elastic easing overshoots 1.

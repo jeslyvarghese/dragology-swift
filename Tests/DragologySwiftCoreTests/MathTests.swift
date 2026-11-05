@@ -61,7 +61,7 @@ import Testing
         minimizer.minimize(
             target: Vec2(500, 0),
             position: { Vec2($0[0], 0) },
-            constraints: { Constraint.inOrder(0, $0[0], 240) }
+            constraints: { DragConstraint.inOrder(0, $0[0], 240) }
         )
 
         #expect(abs(minimizer.parameters[0] - 240) < 1e-6)
@@ -72,7 +72,7 @@ import Testing
         minimizer.minimize(
             target: Vec2(500, 70),
             position: { Vec2($0[0], $0[1]) },
-            constraints: { Constraint.lessThan($0[0], 100) }
+            constraints: { DragConstraint.lessThan($0[0], 100) }
         )
 
         // x hits its limit, but y must still reach the target.

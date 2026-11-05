@@ -16,10 +16,10 @@ drop zones, previews, and animation.
 ## Install
 
 Add this package with Swift Package Manager, and depend on the `DragologySwift` product.
-Requires iOS 17 or macOS 14.
+Requires iOS 26 or macOS 26.
 
 ```swift
-.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.2.0")
+.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.3.0")
 ```
 
 ## Example
@@ -32,17 +32,17 @@ struct ToggleState: Equatable {
     var isOn = false
 }
 
-func toggle(_ context: RenderContext<ToggleState>) -> Node<ToggleState> {
-    group {
-        rect(width: 120, height: 60, cornerRadius: 30)
-            .fill(context.state.isOn ? RGBA(hex: 0x22C55E) : RGBA(hex: 0xD1D5DB))
+func toggle(_ context: SceneContext<ToggleState>) -> SceneNode<ToggleState> {
+    SceneGroup {
+        SceneRect(width: 120, height: 60, cornerRadius: 30)
+            .fill(context.state.isOn ? SceneColor(hex: 0x22C55E) : SceneColor(hex: 0xD1D5DB))
 
-        circle(radius: 26)
+        SceneCircle(radius: 26)
             .id("knob")
             .fill(.white)
             .transform(.translate(context.state.isOn ? 90 : 30, 30))
             .onDrag {
-                context.d.between([ToggleState(isOn: false), ToggleState(isOn: true)])
+                context.drag.between([ToggleState(isOn: false), ToggleState(isOn: true)])
             }
     }
 }
@@ -51,7 +51,7 @@ struct ContentView: View {
     @State private var state = ToggleState()
 
     var body: some View {
-        DraggableCanvas(state: $state, draggable: toggle)
+        DragCanvas(state: $state, scene: toggle)
             .frame(width: 200, height: 100)
     }
 }
@@ -65,23 +65,23 @@ Permutation Lab, Animate Algebra, Twisted Trees, and Face Creator.
 
 Declarative dragging has to render hypothetical states, read positions out of them,
 and blend between them. SwiftUI views are opaque, so none of that is possible on
-them. `Node` is a plain-data scene tree standing in for the SVG of the original,
-which `DraggableCanvas` draws with a SwiftUI `Canvas`.
+them. `SceneNode` is a plain-data scene tree standing in for the SVG of the original,
+which `DragCanvas` draws with a SwiftUI `Canvas`.
 
 ## Drag specs
 
 | Spec | Behavior |
 |---|---|
-| `d.fixed(state)` | Show one state |
-| `d.closest(statesOrSpecs, options:)` | Follow whichever option lands closest to the finger |
-| `d.between(statesOrSpecs, options:)` | Blend between targets, inside their convex hull |
-| `d.vary(state, \.x, \.y, constraint:, pin:)` | Solve for numbers that bring the element to the finger |
-| `d.varyFunction(initial:, state:, ...)` | `vary`, for parameters that change state in concert |
-| `d.dropTarget(id, state, boundsState:)` | Show a state while over the element `id` |
-| `d.switchToStateAndFollow(state, id, followSpec:)` | Jump to a state, and carry on dragging another element |
-| `d.reactTo(value, makeSpec)` | Rebuild a spec when a value changes mid-drag |
-| `d.substate(state, \.part) { d in ... }` | Write a spec for one part of the state |
-| `d.custom { context in { frame in ... } }` | Write a behavior from scratch |
+| `drag.fixed(state)` | Show one state |
+| `drag.closest(statesOrSpecs, options:)` | Follow whichever option lands closest to the finger |
+| `drag.between(statesOrSpecs, options:)` | Blend between targets, inside their convex hull |
+| `drag.vary(state, \.x, \.y, constraint:, pin:)` | Solve for numbers that bring the element to the finger |
+| `drag.varyFunction(initial:, state:, ...)` | `vary`, for parameters that change state in concert |
+| `drag.dropTarget(id, state, boundsState:)` | Show a state while over the element `id` |
+| `drag.switchToStateAndFollow(state, id, followSpec:)` | Jump to a state, and carry on dragging another element |
+| `drag.reactTo(value, makeSpec)` | Rebuild a spec when a value changes mid-drag |
+| `drag.substate(state, \.part) { drag in ... }` | Write a spec for one part of the state |
+| `drag.custom { context in { frame in ... } }` | Write a behavior from scratch |
 | `.whenFar(specOrState, gap:)` | Switch to a background spec when far from this one |
 | `.withFloating(options)` | Detach the element so it follows the finger |
 | `.withSnapRadius(radius, transition:, chaining:)` | Jump the preview to the drop state when close |
@@ -97,7 +97,7 @@ which `DraggableCanvas` draws with a SwiftUI `Canvas`.
 `context.embed(draggable, at: \.part)` draws a sub-draggable for one part of the state,
 and `.emergeFrom(id, mode:)` makes a new layer grow out of an existing one.
 
-For anything else, subclass `Operator` and wrap it with `DragSpec { context in ... }`.
+For anything else, subclass `DragOperator` and wrap it with `DragSpec { context in ... }`.
 
 ## Things to know
 
@@ -129,13 +129,13 @@ For anything else, subclass `Operator` and wrap it with `DragSpec { context in .
 ## Not ported yet
 
 - The debug views (spec tree, overlay, drop zones)
-- SwiftUI views inside a scene
 - Some demos, including the algebra Macro Recorder and Stage Builder
 
 ## Known limitations
 
-- `DraggableCanvas` claims every touch, so it blocks scrolling in a parent `ScrollView`.
-- `DraggableCanvas` clips to its bounds, so give it room for anything dragged near its
+- To scroll in a parent `ScrollView`, use `.dragActivation(.longPress())`. With the default
+  `.immediate`, a swipe that starts on a draggable element drags it.
+- `DragCanvas` clips to its bounds, so give it room for anything dragged near its
   edges. The web version lets content overflow.
 - Canvas content isn't exposed to VoiceOver yet.
 - Hit testing uses an estimated size for text.

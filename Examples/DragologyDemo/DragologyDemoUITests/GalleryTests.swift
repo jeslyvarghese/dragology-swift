@@ -79,6 +79,53 @@ final class GalleryTests: XCTestCase {
         expectValue("state 2")
     }
 
+    // MARK: Real views
+
+    private func tapCounter(_ name: String, times: Int) {
+        let button = app.buttons["add-\(name)"]
+        XCTAssertTrue(button.waitForExistence(timeout: Timing.settle))
+
+        for _ in 0..<times { button.tap() }
+    }
+
+    func testRealViewsKeepTheirStateThroughADrag() {
+        open("Real SwiftUI Views")
+        tapCounter("Apples", times: 2)
+
+        let count = app.staticTexts["count-Apples"]
+        XCTAssertEqual(count.label, "2")
+
+        // Long-press the card's title area, and carry it down two slots.
+        let card = app.staticTexts["title-Apples"]
+        let start = card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = start.withOffset(CGVector(dx: 0, dy: 160))
+
+        start.press(forDuration: 0.6, thenDragTo: end)
+
+        let order = app.staticTexts["realViewsOrder"]
+        let moved = NSPredicate { _, _ in order.label == "Bananas,Cherries,Apples,Dates" }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: moved, object: nil)], timeout: Timing.settle), .completed, order.label)
+
+        XCTAssertEqual(app.staticTexts["count-Apples"].label, "2")
+        tapCounter("Apples", times: 1)
+        XCTAssertEqual(app.staticTexts["count-Apples"].label, "3")
+    }
+
+    func testSwipingOverCardsScrollsThePage() {
+        open("Real SwiftUI Views")
+
+        let card = app.staticTexts["title-Bananas"]
+        XCTAssertTrue(card.waitForExistence(timeout: Timing.settle))
+
+        let before = card.frame.minY
+        let start = card.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+
+        start.press(forDuration: 0.01, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -200)))
+
+        XCTAssertLessThan(card.frame.minY, before - 50, "The page should have scrolled.")
+        XCTAssertEqual(app.staticTexts["realViewsOrder"].label, "Apples,Bananas,Cherries,Dates")
+    }
+
     // MARK: Discrete states
 
     func testRingOfBeads() {

@@ -2,15 +2,15 @@ import DragologySwift
 import Foundation
 
 private enum Palette {
-    static let accent = RGBA(hex: 0x3B82F6)
-    static let track = RGBA(hex: 0xD1D5DB)
-    static let on = RGBA(hex: 0x22C55E)
-    static let row = RGBA(hex: 0xF3F4F6)
-    static let rowBorder = RGBA(hex: 0x9CA3AF)
-    static let ink = RGBA(hex: 0x374151)
+    static let accent = SceneColor(hex: 0x3B82F6)
+    static let track = SceneColor(hex: 0xD1D5DB)
+    static let on = SceneColor(hex: 0x22C55E)
+    static let row = SceneColor(hex: 0xF3F4F6)
+    static let rowBorder = SceneColor(hex: 0x9CA3AF)
+    static let ink = SceneColor(hex: 0x374151)
 }
 
-// MARK: - d.between: a toggle switch
+// MARK: - drag.between: a toggle switch
 
 struct ToggleState: Equatable {
     var isOn = false
@@ -25,31 +25,31 @@ private enum ToggleMetrics {
     static let y = 30.0
 }
 
-func toggleSwitch(_ context: RenderContext<ToggleState>) -> Node<ToggleState> {
+func toggleSwitch(_ context: SceneContext<ToggleState>) -> SceneNode<ToggleState> {
     let state = context.state
     let knobX = state.isOn ? ToggleMetrics.onX : ToggleMetrics.offX
 
-    return group {
-        rect(
+    return SceneGroup {
+        SceneRect(
             width: ToggleMetrics.width,
             height: ToggleMetrics.height,
             cornerRadius: ToggleMetrics.height / 2
         )
         .fill(state.isOn ? Palette.on : Palette.track)
 
-        circle(radius: ToggleMetrics.knobRadius)
+        SceneCircle(radius: ToggleMetrics.knobRadius)
             .id("knob")
             .fill(.white)
             .transform(.translate(knobX, ToggleMetrics.y))
             .onDrag {
-                context.d
+                context.drag
                     .between([ToggleState(isOn: false), ToggleState(isOn: true)])
                     .withDropTransition(.easing(.elasticOut))
             }
     }
 }
 
-// MARK: - d.vary with a constraint: a slider
+// MARK: - drag.vary with a constraint: a slider
 
 struct SliderState: Equatable {
     var value = 100.0
@@ -63,27 +63,27 @@ private enum SliderMetrics {
     static let trackWidth = 4.0
 }
 
-func slider(_ context: RenderContext<SliderState>) -> Node<SliderState> {
+func slider(_ context: SceneContext<SliderState>) -> SceneNode<SliderState> {
     let state = context.state
 
-    return group {
-        line(from: .zero, to: Vec2(SliderMetrics.maxValue, 0))
+    return SceneGroup {
+        SceneLine(from: .zero, to: Vec2(SliderMetrics.maxValue, 0))
             .stroke(Palette.track, lineWidth: SliderMetrics.trackWidth)
 
-        circle(radius: SliderMetrics.thumbRadius)
+        SceneCircle(radius: SliderMetrics.thumbRadius)
             .id("thumb")
             .fill(Palette.accent)
             .transform(.translate(state.value, 0))
             .onDrag {
-                context.d.vary(state, \.value, constraint: { candidate in
-                    Constraint.inOrder(0, candidate.value, SliderMetrics.maxValue)
+                context.drag.vary(state, \.value, constraint: { candidate in
+                    DragConstraint.inOrder(0, candidate.value, SliderMetrics.maxValue)
                 })
             }
     }
     .transform(.translate(SliderMetrics.inset, SliderMetrics.y))
 }
 
-// MARK: - d.vary through a rotation: a dial
+// MARK: - drag.vary through a rotation: a dial
 
 struct DialState: Equatable {
     var degrees = 0.0
@@ -96,24 +96,24 @@ private enum DialMetrics {
     static let ringWidth = 3.0
 }
 
-func dial(_ context: RenderContext<DialState>) -> Node<DialState> {
+func dial(_ context: SceneContext<DialState>) -> SceneNode<DialState> {
     let state = context.state
 
-    return group {
-        circle(radius: DialMetrics.radius)
+    return SceneGroup {
+        SceneCircle(radius: DialMetrics.radius)
             .stroke(Palette.track, lineWidth: DialMetrics.ringWidth)
 
         // The render function only rotates; `vary` works out the angle.
-        circle(radius: DialMetrics.handleRadius)
+        SceneCircle(radius: DialMetrics.handleRadius)
             .id("handle")
             .fill(Palette.accent)
             .transform(.rotate(degrees: state.degrees) + .translate(DialMetrics.radius, 0))
-            .onDrag { context.d.vary(state, \.degrees) }
+            .onDrag { context.drag.vary(state, \.degrees) }
     }
     .transform(.translate(DialMetrics.center))
 }
 
-// MARK: - d.closest + withFloating: a reorderable list
+// MARK: - drag.closest + withFloating: a reorderable list
 
 struct ListState: Equatable {
     var items = ["Apples", "Bananas", "Cherries", "Dates"]
@@ -136,13 +136,13 @@ private enum ListMetrics {
     static let inset = 2.0
 }
 
-func reorderableList(_ context: RenderContext<ListState>) -> Node<ListState> {
+func reorderableList(_ context: SceneContext<ListState>) -> SceneNode<ListState> {
     let state = context.state
 
-    return group {
+    return SceneGroup {
         for (index, item) in state.items.enumerated() {
-            group {
-                rect(
+            SceneGroup {
+                SceneRect(
                     width: ListMetrics.width,
                     height: ListMetrics.rowHeight,
                     cornerRadius: ListMetrics.cornerRadius
@@ -150,7 +150,7 @@ func reorderableList(_ context: RenderContext<ListState>) -> Node<ListState> {
                 .fill(Palette.row)
                 .stroke(Palette.rowBorder, lineWidth: ListMetrics.borderWidth)
 
-                label(item, size: ListMetrics.fontSize)
+                SceneText(item, size: ListMetrics.fontSize)
                     .fill(Palette.ink)
                     .transform(.translate(ListMetrics.width / 2, ListMetrics.rowHeight / 2))
             }
@@ -159,7 +159,7 @@ func reorderableList(_ context: RenderContext<ListState>) -> Node<ListState> {
             .zIndex(context.draggedID == item ? .absolute(1) : .relative(0))
             .onDrag {
                 let orders = state.items.indices.map { state.moving(from: index, to: $0) }
-                return context.d.closest(orders).withFloating()
+                return context.drag.closest(orders).withFloating()
             }
         }
     }

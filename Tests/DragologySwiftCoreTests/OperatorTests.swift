@@ -9,20 +9,20 @@ private struct Dot: Equatable {
     var extra = false
 }
 
-private func zone() -> Node<Dot> {
-    rect(width: 50, height: 50).id("zone").fill(.white).transform(.translate(200, 0))
+private func zone() -> SceneNode<Dot> {
+    SceneRect(width: 50, height: 50).id("zone").fill(.white).transform(.translate(200, 0))
 }
 
-private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> Draggable<Dot> {
+private func scene(_ spec: @escaping (SceneContext<Dot>) -> DragSpec<Dot>) -> DragScene<Dot> {
     { context in
-        group {
+        SceneGroup {
             zone()
 
             if context.state.extra {
-                circle(radius: 5).id("copy").fill(.black).transform(.translate(context.state.x, 50))
+                SceneCircle(radius: 5).id("copy").fill(.black).transform(.translate(context.state.x, 50))
             }
 
-            circle(radius: 10)
+            SceneCircle(radius: 10)
                 .id("dot")
                 .fill(.black)
                 .transform(.translate(context.state.x, context.state.y))
@@ -32,16 +32,16 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 }
 
 @Suite struct DropTargetTests {
-    private static func draggable(_ context: RenderContext<Dot>) -> Node<Dot> {
+    private static func draggable(_ context: SceneContext<Dot>) -> SceneNode<Dot> {
         scene { context in
-            context.d
+            context.drag
                 .dropTarget("zone", Dot(isTrashed: true))
-                .whenFar(context.d.vary(context.state, \.x, \.y), gap: WhenFarGap(1))
+                .whenFar(context.drag.vary(context.state, \.x, \.y), gap: WhenFarGap(1))
         }(context)
     }
 
     @Test func droppingInsideTheTargetTakesItsState() {
-        let engine = DragEngine(state: Dot(), draggable: Self.draggable)
+        let engine = DragEngine(state: Dot(), scene: Self.draggable)
 
         drag(engine, from: .zero, through: [Vec2(225, 25)])
         engine.pointerUp(at: Vec2(225, 25), now: 0)
@@ -50,7 +50,7 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
     }
 
     @Test func droppingOutsideFallsThrough() {
-        let engine = DragEngine(state: Dot(), draggable: Self.draggable)
+        let engine = DragEngine(state: Dot(), scene: Self.draggable)
 
         drag(engine, from: .zero, through: [Vec2(100, 25)])
         engine.pointerUp(at: Vec2(100, 25), now: 0)
@@ -67,12 +67,12 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
         let draggable = scene { context in
             let next = Dot(x: context.state.x + 100)
 
-            return context.d
+            return context.drag
                 .between([context.state, next])
                 .withSnapRadius(5, chaining: .chainOnSnap)
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(100, 0), Vec2(100, 0), Vec2(200, 0), Vec2(200, 0)])
         engine.pointerUp(at: Vec2(200, 0), now: 0)
@@ -82,10 +82,10 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     @Test func withoutChainingOneHopIsTheLimit() {
         let draggable = scene { context in
-            context.d.between([context.state, Dot(x: context.state.x + 100)])
+            context.drag.between([context.state, Dot(x: context.state.x + 100)])
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(100, 0), Vec2(200, 0)])
         engine.pointerUp(at: Vec2(200, 0), now: 0)
@@ -96,7 +96,7 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
     @Test func withChainingFeedsEachResultIntoTheNextFrame() {
         // Without feedback, `during` would always start from the original.
         let draggable = scene { context in
-            context.d
+            context.drag
                 .vary(context.state, \.x)
                 .during { state in
                     var copy = state
@@ -106,7 +106,7 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
                 .withChaining(transition: nil)
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(1, 0), Vec2(2, 0), Vec2(3, 0)])
         engine.pointerUp(at: Vec2(3, 0), now: 0)
@@ -115,34 +115,34 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
     }
 
     @Test func followSwitchesElementAndState() throws {
-        let draggable: Draggable<Dot> = { context in
+        let draggable: DragScene<Dot> = { context in
             let state = context.state
 
-            return group {
+            return SceneGroup {
                 if state.extra {
-                    circle(radius: 5)
+                    SceneCircle(radius: 5)
                         .id("copy")
                         .fill(.black)
                         .transform(.translate(state.y, 0))
                 }
 
-                circle(radius: 10)
+                SceneCircle(radius: 10)
                     .id("dot")
                     .fill(.black)
                     .transform(.translate(state.x, 0))
                     .onDrag {
                         let copied = Dot(x: state.x, y: state.x, extra: true)
 
-                        return context.d.switchToStateAndFollow(
+                        return context.drag.switchToStateAndFollow(
                             copied,
                             "copy",
-                            followSpec: context.d.vary(copied, \.y)
+                            followSpec: context.drag.vary(copied, \.y)
                         )
                     }
             }
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(80, 0)])
 
@@ -165,30 +165,30 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
         var blocks = [Block(), Block()]
     }
 
-    private static func blockNode(_ context: RenderContext<Block>) -> Node<Block> {
-        rect(width: 20, height: 20)
+    private static func blockNode(_ context: SceneContext<Block>) -> SceneNode<Block> {
+        SceneRect(width: 20, height: 20)
             .id("embedded")
             .fill(.black)
             .transform(.translate(context.state.position, 0))
-            .onDrag { context.d.vary(context.state, \.position) }
+            .onDrag { context.drag.vary(context.state, \.position) }
     }
 
     @Test func aSubstateSpecEditsOnlyItsPart() {
-        let draggable: Draggable<Timeline> = { context in
+        let draggable: DragScene<Timeline> = { context in
             let state = context.state
 
-            return rect(width: 20, height: 20)
+            return SceneRect(width: 20, height: 20)
                 .id("block")
                 .fill(.black)
                 .transform(.translate(state.blocks[1].position, 0))
                 .onDrag {
-                    context.d.substate(state, \.blocks[1]) { d in
+                    context.drag.substate(state, \.blocks[1]) { d in
                         d.vary(state.blocks[1], \.position)
                     }
                 }
         }
 
-        let engine = DragEngine(state: Timeline(), draggable: draggable)
+        let engine = DragEngine(state: Timeline(), scene: draggable)
 
         drag(engine, from: Vec2(5, 5), through: [Vec2(55, 5)])
         engine.pointerUp(at: Vec2(55, 5), now: 0)
@@ -199,11 +199,11 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
     }
 
     @Test func anEmbeddedDraggableLiftsItsDrags() {
-        let draggable: Draggable<Timeline> = { context in
-            group { context.embed(Self.blockNode, at: \.blocks[0]) }
+        let draggable: DragScene<Timeline> = { context in
+            SceneGroup { context.embed(Self.blockNode, at: \.blocks[0]) }
         }
 
-        let engine = DragEngine(state: Timeline(), draggable: draggable)
+        let engine = DragEngine(state: Timeline(), scene: draggable)
 
         drag(engine, from: Vec2(5, 5), through: [Vec2(35, 5)])
         engine.pointerUp(at: Vec2(35, 5), now: 0)
@@ -221,12 +221,12 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
         let flag = Flag()
         let draggable = scene { context in
-            context.d.reactTo({ flag.isOn }) { isOn in
-                context.d.fixed(Dot(x: isOn ? 100 : 50))
+            context.drag.reactTo({ flag.isOn }) { isOn in
+                context.drag.fixed(Dot(x: isOn ? 100 : 50))
             }
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(10, 0)])
         #expect(engine.scene.origin(of: "dot") == Vec2(50, 0))
@@ -239,10 +239,10 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     @Test func overlaysShowDuringTheDragAndGoAwayAfter() {
         let draggable = scene { context in
-            context.d.fixed(Dot(x: 10)).withOverlay(circle(radius: 3).id("mark"))
+            context.drag.fixed(Dot(x: 10)).withOverlay(SceneCircle(radius: 3).id("mark"))
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
         let hasOverlay = { engine.scene.layers.keys.contains { $0.hasSuffix("mark") } }
 
         drag(engine, from: .zero, through: [Vec2(10, 0)])
@@ -256,12 +256,12 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     @Test func changeFrameRemapsThePointer() {
         let draggable = scene { context in
-            context.d
+            context.drag
                 .vary(context.state, \.x)
                 .changeFrame { DragFrame(pointer: Vec2(-$0.pointer.x, 0)) }
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(40, 0)])
         engine.pointerUp(at: Vec2(40, 0), now: 0)
@@ -271,13 +271,13 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     @Test func changeGapReweightsClosest() {
         let draggable = scene { context in
-            context.d.closest([
-                context.d.fixed(Dot(x: 0)).changeGap { $0 * 10 },
-                context.d.fixed(Dot(x: 100)),
+            context.drag.closest([
+                context.drag.fixed(Dot(x: 0)).changeGap { $0 * 10 },
+                context.drag.fixed(Dot(x: 100)),
             ])
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         // Nearer the first target, but its gap counts for ten times more.
         drag(engine, from: .zero, through: [Vec2(20, 0)])
@@ -288,10 +288,10 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     @Test func changeResultCanRewriteTheOutcome() {
         let draggable = scene { context in
-            context.d.fixed(Dot(x: 10)).changeResult { $0.dropState.y = 7 }
+            context.drag.fixed(Dot(x: 10)).changeResult { $0.dropState.y = 7 }
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(10, 0)])
         engine.pointerUp(at: Vec2(10, 0), now: 0)
@@ -301,12 +301,12 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     @Test func customBehaviorsRunEachFrame() {
         let draggable = scene { context in
-            context.d.custom { dragContext in
+            context.drag.custom { dragContext in
                 { frame in
                     let state = Dot(x: frame.pointer.x.rounded())
 
                     return DragResult(
-                        preview: Lazy { dragContext.render(state) },
+                        preview: LazyPreview { dragContext.render(state) },
                         dropState: state,
                         gap: 0
                     )
@@ -314,7 +314,7 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
             }
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(12.4, 0)])
         engine.pointerUp(at: Vec2(12.4, 0), now: 0)
@@ -324,12 +324,12 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     @Test func withInitContextAdjustsTheAnchor() {
         let draggable = scene { context in
-            context.d
+            context.drag
                 .vary(context.state, \.x)
                 .withInitContext { $0.anchor = Vec2(10, 0) }
         }
 
-        let engine = DragEngine(state: Dot(), draggable: draggable)
+        let engine = DragEngine(state: Dot(), scene: draggable)
 
         drag(engine, from: .zero, through: [Vec2(50, 0)])
         engine.pointerUp(at: Vec2(50, 0), now: 0)
@@ -345,11 +345,11 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     private static func tree(_ mode: EmergeMode) -> (Sprout) -> LayeredScene<Sprout> {
         { state in
-            LayeredScene(root: group {
-                circle(radius: 5).id("seed").transform(.translate(100, 0))
+            LayeredScene(root: SceneGroup {
+                SceneCircle(radius: 5).id("seed").transform(.translate(100, 0))
 
                 if state.isGrown {
-                    circle(radius: 5)
+                    SceneCircle(radius: 5)
                         .id("leaf")
                         .transform(.translate(100, 100))
                         .emergeFrom("seed", mode: mode)
@@ -378,11 +378,11 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
     @Test func morphStartsFromTheOriginsBox() throws {
         let render = { (isGrown: Bool) -> LayeredScene<Sprout> in
-            LayeredScene(root: group {
-                group { rect(width: 10, height: 10) }.id("seed")
+            LayeredScene(root: SceneGroup {
+                SceneGroup { SceneRect(width: 10, height: 10) }.id("seed")
 
                 if isGrown {
-                    group { rect(width: 30, height: 30) }
+                    SceneGroup { SceneRect(width: 30, height: 30) }
                         .id("box")
                         .transform(.translate(100, 0))
                         .emergeFrom("seed", mode: .morph)
@@ -441,9 +441,9 @@ private func scene(_ spec: @escaping (RenderContext<Dot>) -> DragSpec<Dot>) -> D
 
 @Suite struct HitRuleTests {
     @Test func anOutlineDoesntCatchTouchesInside() {
-        let root: Node<Dot> = group {
-            rect(width: 100, height: 100).id("under").fill(.white).onTap {}
-            circle(radius: 40).id("ring").stroke(.black).transform(.translate(50, 50)).zIndex(.relative(1))
+        let root: SceneNode<Dot> = SceneGroup {
+            SceneRect(width: 100, height: 100).id("under").fill(.white).onTap {}
+            SceneCircle(radius: 40).id("ring").stroke(.black).transform(.translate(50, 50)).zIndex(.relative(1))
         }
 
         let hit = LayeredScene(root: root).hitTest(Vec2(50, 50))

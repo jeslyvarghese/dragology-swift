@@ -1,33 +1,33 @@
 import Foundation
 
 /// Everything a render function gets.
-public struct RenderContext<State: Equatable> {
+public struct SceneContext<State: Equatable> {
     public let state: State
     /// Builds drag specs.
-    public let d = DragSpecBuilder<State>()
+    public let drag = DragSpecBuilder<State>()
     /// The id of the element being dragged, if there is one.
     public let draggedID: String?
     /// True when only the dragged element's position matters, so a
     /// render function can skip expensive decoration.
     public let isTracking: Bool
-    let applyState: (State, Transition?) -> Void
+    let applyState: (State, DragTransition?) -> Void
 
     /// Changes state outside of a drag, such as on a tap.
-    public func setState(_ state: State, transition: Transition? = .standard) {
+    public func setState(_ state: State, transition: DragTransition? = .standard) {
         applyState(state, transition)
     }
 
     /// Draws a sub-draggable for one part of the state. Its drags and
     /// state changes are lifted back up to this level automatically.
     public func embed<Sub: Equatable>(
-        _ draggable: Draggable<Sub>,
+        _ draggable: DragScene<Sub>,
         at path: WritableKeyPath<State, Sub>
-    ) -> Node<State> {
+    ) -> SceneNode<State> {
         let parent = state
         let parentApply = applyState
-        let builder = d
+        let builder = drag
 
-        let subContext = RenderContext<Sub>(
+        let subContext = SceneContext<Sub>(
             state: parent[keyPath: path],
             draggedID: draggedID,
             isTracking: isTracking,
@@ -46,11 +46,11 @@ public struct RenderContext<State: Equatable> {
 
 /// A pure function from state to scene. It runs on many hypothetical
 /// states during a drag, so it must not have side effects.
-public typealias Draggable<State: Equatable> = (RenderContext<State>) -> Node<State>
+public typealias DragScene<State: Equatable> = (SceneContext<State>) -> SceneNode<State>
 
 /// Computes a value on first use, then keeps it. Previews are often
 /// never shown, and rendering one is the expensive part of a frame.
-public final class Lazy<Value> {
+public final class LazyPreview<Value> {
     private var compute: (() -> Value)?
     private var cached: Value?
 
@@ -62,7 +62,7 @@ public final class Lazy<Value> {
         if let cached { return cached }
 
         guard let compute else {
-            preconditionFailure("Lazy value lost both its result and its computation.")
+            preconditionFailure("LazyPreview value lost both its result and its computation.")
         }
 
         let computed = compute()
@@ -75,18 +75,18 @@ public final class Lazy<Value> {
 
 /// A request to commit to the drop state right now, and carry on
 /// dragging from there.
-public struct Chaining<State: Equatable> {
+public struct DragChaining<State: Equatable> {
     /// The element to continue with. Defaults to the current one.
     public var draggedID: String?
     /// The spec to continue with. Defaults to the element's own.
     public var followSpec: DragSpec<State>?
     /// Nil means no animation.
-    public var transition: Transition?
+    public var transition: DragTransition?
 
     public init(
         draggedID: String? = nil,
         followSpec: DragSpec<State>? = nil,
-        transition: Transition? = .standard
+        transition: DragTransition? = .standard
     ) {
         self.draggedID = draggedID
         self.followSpec = followSpec
@@ -106,7 +106,7 @@ public struct DragFrame: Sendable {
 /// What a drag behavior produces on each frame.
 public struct DragResult<State: Equatable> {
     /// What to display.
-    public var preview: Lazy<LayeredScene<State>>
+    public var preview: LazyPreview<LayeredScene<State>>
     /// What the state becomes if the drag ends now.
     public var dropState: State
     /// How far the dragged element is from the pointer. `closest` and
@@ -118,13 +118,13 @@ public struct DragResult<State: Equatable> {
     /// Which branch of the spec is driving. A change triggers a transition.
     public var activePath = ""
     /// Nil means no animation.
-    public var dropTransition: Transition? = .standard
-    public var branchTransition: Transition? = .standard
+    public var dropTransition: DragTransition? = .standard
+    public var branchTransition: DragTransition? = .standard
     /// Set to chain into a new drag from `dropState`.
-    public var chain: Chaining<State>?
+    public var chain: DragChaining<State>?
 
     public init(
-        preview: Lazy<LayeredScene<State>>,
+        preview: LazyPreview<LayeredScene<State>>,
         dropState: State,
         gap: Double,
         grabPosition: Vec2? = nil
@@ -145,7 +145,7 @@ public struct DragResult<State: Equatable> {
 
 /// What's fixed for the length of a drag.
 public struct DragContext<State: Equatable> {
-    public var draggable: Draggable<State>
+    public var scene: DragScene<State>
     public var draggedPath: String
     public var draggedID: String?
     /// The grabbed point, in the dragged element's local coordinates.
@@ -153,7 +153,7 @@ public struct DragContext<State: Equatable> {
     public var startState: State
 
     /// Finds an element in a state, by id or else by the dragged path.
-    func element(id: String?, in state: State) -> Node<State>? {
+    func element(id: String?, in state: State) -> SceneNode<State>? {
         let tree = renderTree(state, isTracking: true).assigningPaths()
 
         if let id {
@@ -163,8 +163,8 @@ public struct DragContext<State: Equatable> {
         return tree.find { $0.path == draggedPath }?.node
     }
 
-    private func renderTree(_ state: State, isTracking: Bool) -> Node<State> {
-        let context = RenderContext(
+    private func renderTree(_ state: State, isTracking: Bool) -> SceneNode<State> {
+        let context = SceneContext(
             state: state,
             draggedID: draggedID,
             isTracking: isTracking,
@@ -173,7 +173,7 @@ public struct DragContext<State: Equatable> {
             }
         )
 
-        return draggable(context)
+        return scene(context)
     }
 
     /// Renders a state, to show as a preview.
@@ -204,7 +204,7 @@ public struct DragContext<State: Equatable> {
 
 /// A running drag behavior, built fresh from a spec for each drag.
 /// Subclass this for behaviors that the built-in operators can't compose.
-open class Operator<State: Equatable> {
+open class DragOperator<State: Equatable> {
     public let context: DragContext<State>
     /// Names this operator in active paths.
     public let name: String
@@ -216,7 +216,7 @@ open class Operator<State: Equatable> {
 
     /// Computes one frame. May keep memory between frames in fields.
     open func frame(_ frame: DragFrame) -> DragResult<State> {
-        preconditionFailure("Subclasses of Operator must override frame(_:).")
+        preconditionFailure("Subclasses of DragOperator must override frame(_:).")
     }
 
     /// Runs a frame, recording this operator on the active path.

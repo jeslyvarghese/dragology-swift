@@ -13,18 +13,18 @@ public enum SnapChaining: Sendable {
 }
 
 /// Shows the drop state outright once the element gets close to it.
-final class SnapRadiusOperator<State: Equatable>: Operator<State> {
+final class SnapRadiusOperator<State: Equatable>: DragOperator<State> {
     /// A drop state's measurements. Drop states repeat from frame to
     /// frame, so the latest one is worth keeping.
     private struct Target {
         var state: State
         var position: Vec2?
-        var preview: Lazy<LayeredScene<State>>
+        var preview: LazyPreview<LayeredScene<State>>
     }
 
-    private let inner: Operator<State>
+    private let inner: DragOperator<State>
     private let radius: Double
-    private let transition: Transition?
+    private let transition: DragTransition?
     private let chaining: SnapChaining
     private var target: Target?
 
@@ -32,7 +32,7 @@ final class SnapRadiusOperator<State: Equatable>: Operator<State> {
         context: DragContext<State>,
         inner: DragSpec<State>,
         radius: Double,
-        transition: Transition?,
+        transition: DragTransition?,
         chaining: SnapChaining
     ) {
         self.inner = inner.makeOperator(context)
@@ -61,7 +61,7 @@ final class SnapRadiusOperator<State: Equatable>: Operator<State> {
         }
 
         if isSnapped, case .chainOnSnap = chaining {
-            result.chain = Chaining(transition: transition)
+            result.chain = DragChaining(transition: transition)
         }
 
         // Only a transition makes snapping count as a branch switch.
@@ -79,7 +79,7 @@ final class SnapRadiusOperator<State: Equatable>: Operator<State> {
         let fresh = Target(
             state: state,
             position: context.position(in: state),
-            preview: Lazy { context.render(state) }
+            preview: LazyPreview { context.render(state) }
         )
         target = fresh
 

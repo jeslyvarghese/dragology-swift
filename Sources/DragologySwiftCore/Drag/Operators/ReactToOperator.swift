@@ -1,10 +1,10 @@
 import Foundation
 
 /// Rebuilds its spec whenever a watched value changes.
-final class ReactToOperator<State: Equatable, Value: Equatable>: Operator<State> {
+final class ReactToOperator<State: Equatable, Value: Equatable>: DragOperator<State> {
     private let value: () -> Value
     private let makeSpec: (Value) -> DragSpec<State>
-    private var current: (value: Value, behavior: Operator<State>)?
+    private var current: (value: Value, behavior: DragOperator<State>)?
 
     init(
         context: DragContext<State>,

@@ -14,11 +14,11 @@ private enum Blend {
     static let minWeight = 1e-10
 }
 
-extension Node {
+extension SceneNode {
     /// Blends two renders of the same node. Children pair up by key, or
     /// else by position; one with no partner fades.
-    static func lerp(_ a: Node, _ b: Node, _ t: Double, unblended: UnblendedSide) -> Node {
-        var result: Node
+    static func lerp(_ a: SceneNode, _ b: SceneNode, _ t: Double, unblended: UnblendedSide) -> SceneNode {
+        var result: SceneNode
 
         switch unblended {
         case .first:
@@ -27,27 +27,27 @@ extension Node {
             result = b
         }
 
-        result.transform = Transform.lerp(a.transform, b.transform, t)
+        result.transform = SceneTransform.lerp(a.transform, b.transform, t)
         result.opacity = mix(a.opacity, b.opacity, t)
-        result.shape = Shape.lerp(a.shape, b.shape, t)
-        result.style = Style.lerp(a.style, b.style, t)
+        result.shape = SceneShape.lerp(a.shape, b.shape, t)
+        result.style = SceneStyle.lerp(a.style, b.style, t)
         result.children = lerpChildren(a.children, b.children, t, unblended: unblended)
 
         return result
     }
 
     private static func lerpChildren(
-        _ a: [Node],
-        _ b: [Node],
+        _ a: [SceneNode],
+        _ b: [SceneNode],
         _ t: Double,
         unblended: UnblendedSide
-    ) -> [Node] {
+    ) -> [SceneNode] {
         let slotsA = slots(a)
         let slotsB = Dictionary(uniqueKeysWithValues: slots(b).map { ($0.slot, $0.node) })
         let keysA = Set(slotsA.map(\.slot))
 
         // Keep A's order, then add children that only B has.
-        var result: [Node] = []
+        var result: [SceneNode] = []
 
         for (slot, childA) in slotsA {
             if let childB = slotsB[slot] {
@@ -70,7 +70,7 @@ extension Node {
     }
 
     /// Identifies children the same way paths do.
-    private static func slots(_ children: [Node]) -> [(slot: String, node: Node)] {
+    private static func slots(_ children: [SceneNode]) -> [(slot: String, node: SceneNode)] {
         var unkeyedIndex = 0
 
         return children.map { child in
@@ -84,13 +84,13 @@ extension Node {
     /// Gives this node's first box and label the origin's size and place.
     /// False if either node has no box.
     @discardableResult
-    fileprivate mutating func takeBox(of origin: Node) -> Bool {
-        let isBox = { (child: Node) in
+    fileprivate mutating func takeBox(of origin: SceneNode) -> Bool {
+        let isBox = { (child: SceneNode) in
             if case .rect = child.shape { return true }
             return false
         }
 
-        let isLabel = { (child: Node) in
+        let isLabel = { (child: SceneNode) in
             if case .text = child.shape { return true }
             return false
         }
@@ -110,7 +110,7 @@ extension Node {
         return true
     }
 
-    fileprivate func faded(by factor: Double) -> Node? {
+    fileprivate func faded(by factor: Double) -> SceneNode? {
         let faded = opacity * factor
         guard faded > Blend.minVisibleOpacity else { return nil }
 
@@ -128,7 +128,7 @@ extension LayeredScene {
         _ t: Double,
         unblended: UnblendedSide
     ) -> LayeredScene {
-        var layers: [String: Layer<State>] = [:]
+        var layers: [String: SceneLayer<State>] = [:]
         let keys = a.order + b.order.filter { a.layers[$0] == nil }
 
         for key in keys {
@@ -148,19 +148,19 @@ extension LayeredScene {
                     stacking = layerB.stackingPath
                 }
 
-                layers[key] = Layer(
-                    node: Node.lerp(layerA.node, layerB.node, t, unblended: unblended),
+                layers[key] = SceneLayer(
+                    node: SceneNode.lerp(layerA.node, layerB.node, t, unblended: unblended),
                     stackingPath: stacking
                 )
 
             case (let layerA?, nil):
                 if let faded = layerA.node.faded(by: 1 - t) {
-                    layers[key] = Layer(node: faded, stackingPath: layerA.stackingPath)
+                    layers[key] = SceneLayer(node: faded, stackingPath: layerA.stackingPath)
                 }
 
             case (nil, let layerB?):
                 if let faded = layerB.node.faded(by: t) {
-                    layers[key] = Layer(node: faded, stackingPath: layerB.stackingPath)
+                    layers[key] = SceneLayer(node: faded, stackingPath: layerB.stackingPath)
                 }
 
             case (nil, nil):
@@ -175,7 +175,7 @@ extension LayeredScene {
 
     /// What `layer` looks like just before emerging in this scene, if it
     /// names an origin here.
-    private func emergingVersion(of layer: Layer<State>) -> Layer<State>? {
+    private func emergingVersion(of layer: SceneLayer<State>) -> SceneLayer<State>? {
         guard let originID = layer.node.emergeOrigin,
               let origin = layers[originID] else {
             return nil
@@ -197,7 +197,7 @@ extension LayeredScene {
             node.opacity = 0
         }
 
-        return Layer(node: node, stackingPath: layer.stackingPath)
+        return SceneLayer(node: node, stackingPath: layer.stackingPath)
     }
 
     /// Blends several scenes. `weights` maps index to weight, summing to 1.

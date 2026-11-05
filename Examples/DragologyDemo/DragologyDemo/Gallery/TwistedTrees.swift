@@ -134,12 +134,12 @@ private enum Twist {
     static let fgGap = 20.0
     static let emptyBgSize = 10.0
     static let snapRadius = 20.0
-    static let badTransition = Transition(easing: .cubicOut, duration: 0.3)
+    static let badTransition = DragTransition(easing: .cubicOut, duration: 0.3)
     static let bgEdgeWidth = 12.0
     static let fgEdgeWidth = 2.0
-    static let bgFill = RGBA(hex: 0xD3D3D3)
-    static let highlight = RGBA(hex: 0x93C5FD)
-    static let arrow = RGBA(hex: 0x4287F5)
+    static let bgFill = SceneColor(hex: 0xD3D3D3)
+    static let highlight = SceneColor(hex: 0x93C5FD)
+    static let arrow = SceneColor(hex: 0x4287F5)
     static let draggedNode = Ink.blue
     static let edgeZ = -2
     static let circleZ = -1
@@ -171,14 +171,14 @@ private func overlapIntervals(
 
 // MARK: - Rendering
 
-func twistedTrees(_ universe: TwistUniverse, mode: TwistMode) -> Draggable<TwistState> {
+func twistedTrees(_ universe: TwistUniverse, mode: TwistMode) -> DragScene<TwistState> {
     { context in
         let renderer = TwistRenderer(universe: universe, mode: mode, context: context)
         let bgTree = renderer.drawBgSubtree(universe.tree, fgNodes: [universe.tree]).drawn.node
         let extras = mode == .traditional ? renderer.drawTraditional() : []
-        let main = Node<TwistState>(children: [bgTree] + extras)
+        let main = SceneNode<TwistState>(children: [bgTree] + extras)
 
-        return Node(children: [main] + renderer.finalizers.run(against: main))
+        return SceneNode(children: [main] + renderer.finalizers.run(against: main))
     }
 }
 
@@ -186,20 +186,20 @@ func twistedTrees(_ universe: TwistUniverse, mode: TwistMode) -> Draggable<Twist
 /// nodes that the map sends there.
 private struct TwistRenderer {
     struct Drawn {
-        var node: Node<TwistState>
+        var node: SceneNode<TwistState>
         var width: Double
         var height: Double
     }
 
     struct DrawnBg {
         var drawn: Drawn
-        var center: PointRef
+        var center: ScenePoint
     }
 
     let universe: TwistUniverse
     let mode: TwistMode
-    let context: RenderContext<TwistState>
-    let finalizers = Finalizers<TwistState>()
+    let context: SceneContext<TwistState>
+    let finalizers = SceneDeferred<TwistState>()
 
     private var morph: TreeMorph { context.state.morph }
 
@@ -230,7 +230,7 @@ private struct TwistRenderer {
     }
 
     func dragSpec(for dragged: String) -> DragSpec<TwistState> {
-        let d = context.d
+        let d = context.drag
         let morphs = targetMorphs(for: dragged)
 
         guard mode.usesDropTargets else {
@@ -280,7 +280,7 @@ private struct TwistRenderer {
         )
 
         var parts = [
-            Node<TwistState>(children: [bg.drawn.node])
+            SceneNode<TwistState>(children: [bg.drawn.node])
                 .id("bg-node-group-\(bgNode.id)")
                 .transform(.translate(overlap.aOffset, 0)),
         ]
@@ -291,7 +291,7 @@ private struct TwistRenderer {
 
         for (child, drawn) in zip(bgNode.children, children) {
             parts.append(
-                Node(children: [drawn.drawn.node])
+                SceneNode(children: [drawn.drawn.node])
                     .id("bg-child-group-\(bgNode.id)-\(child.id)")
                     .transform(.translate(x, y))
             )
@@ -303,14 +303,14 @@ private struct TwistRenderer {
         }
 
         return DrawnBg(
-            drawn: Drawn(node: Node(children: parts), width: overlap.length, height: bottom),
+            drawn: Drawn(node: SceneNode(children: parts), width: overlap.length, height: bottom),
             center: bg.center
         )
     }
 
-    private func addBgEdge(from start: PointRef, to end: PointRef, id: String) {
+    private func addBgEdge(from start: ScenePoint, to end: ScenePoint, id: String) {
         finalizers.add { resolve in
-            line(from: resolve(start), to: resolve(end))
+            SceneLine(from: resolve(start), to: resolve(end))
                 .id(id)
                 .stroke(Twist.bgFill, lineWidth: Twist.bgEdgeWidth)
                 .zIndex(.absolute(Twist.edgeZ))
@@ -320,7 +320,7 @@ private struct TwistRenderer {
 
     /// A grey circle, sized to hold the foreground nodes placed in it.
     private func drawBgNode(_ bgNode: TwistTree, fgNodes: [TwistTree]) -> (DrawnBg, below: [TwistTree]) {
-        var inside: [Node<TwistState>] = []
+        var inside: [SceneNode<TwistState>] = []
         var below: [TwistTree] = []
         var x = Twist.bgPadding
         let y = Twist.bgPadding
@@ -331,7 +331,7 @@ private struct TwistRenderer {
             let (drawn, left) = drawFgSubtree(fgNode, in: bgNode.id)
 
             inside.append(
-                Node(children: [drawn.node])
+                SceneNode(children: [drawn.node])
                     .id("fg-in-bg-\(bgNode.id)-\(fgNode.id)")
                     .transform(.translate(x, y))
             )
@@ -352,19 +352,19 @@ private struct TwistRenderer {
         let circleID = "bg-circle-\(bgNode.id)"
         let isHighlighted = context.state.highlightedNode == bgNode.id
 
-        let node: Node<TwistState> = group {
-            circle(radius: radius)
+        let node: SceneNode<TwistState> = SceneGroup {
+            SceneCircle(radius: radius)
                 .id(circleID)
                 .fill(isHighlighted ? Twist.highlight : Twist.bgFill)
                 .transform(.translate(circleCenter))
                 .zIndex(.absolute(Twist.circleZ))
 
-            Node<TwistState>(children: inside).transform(.translate(circleCenter - boxCenter))
+            SceneNode<TwistState>(children: inside).transform(.translate(circleCenter - boxCenter))
         }
 
         let drawn = Drawn(node: node, width: 2 * radius, height: 2 * radius)
 
-        return (DrawnBg(drawn: drawn, center: PointRef(circleID)), below)
+        return (DrawnBg(drawn: drawn, center: ScenePoint(circleID)), below)
     }
 
     // MARK: Foreground tree
@@ -373,7 +373,7 @@ private struct TwistRenderer {
     /// background node. The rest are left for the tree below.
     private func drawFgSubtree(_ fgNode: TwistTree, in bgID: String) -> (Drawn, below: [TwistTree]) {
         let childrenID = "fg-children-\(fgNode.id)"
-        var parts: [Node<TwistState>] = []
+        var parts: [SceneNode<TwistState>] = []
         var below: [TwistTree] = []
         var childrenX = 0.0
         var childrenHeight = 0.0
@@ -382,14 +382,14 @@ private struct TwistRenderer {
             if index > 0 { childrenX += Twist.fgGap }
 
             let edgeID = "fg-edge-\(fgNode.id)-\(child.id)"
-            let parentRef = PointRef(fgNode.id)
-            let childRef = PointRef(child.id)
+            let parentRef = ScenePoint(fgNode.id)
+            let childRef = ScenePoint(child.id)
 
             guard morph[child.id] == bgID else {
                 below.append(child)
 
                 // Heads for the child's slot, then on down to where it went.
-                let slot = PointRef(childrenID, Vec2(childrenX, 0))
+                let slot = ScenePoint(childrenID, Vec2(childrenX, 0))
                 addFgEdge(id: edgeID) { resolve in
                     cardinalCurve(resolve(parentRef), resolve(slot), resolve(childRef))
                 }
@@ -400,7 +400,7 @@ private struct TwistRenderer {
             let (drawn, left) = drawFgSubtree(child, in: bgID)
 
             parts.append(
-                Node(children: [drawn.node])
+                SceneNode(children: [drawn.node])
                     .id("fg-child-\(fgNode.id)-\(child.id)")
                     .transform(.translate(childrenX, 0))
             )
@@ -421,14 +421,14 @@ private struct TwistRenderer {
         let isDraggedHere = mode.usesDropTargets && context.draggedID == fgNode.id
         let renderer = self
 
-        let node: Node<TwistState> = group {
-            circle(radius: Twist.fgSize / 2)
+        let node: SceneNode<TwistState> = SceneGroup {
+            SceneCircle(radius: Twist.fgSize / 2)
                 .id(fgNode.id)
                 .fill(isDraggedHere ? Twist.draggedNode : .black)
                 .transform(.translate(nodeX, Twist.fgSize / 2))
                 .onDrag { renderer.dragSpec(for: fgNode.id) }
 
-            Node<TwistState>(children: parts)
+            SceneNode<TwistState>(children: parts)
                 .id(childrenID)
                 .transform(.translate(childrenInset, Twist.fgSize + Twist.fgGap))
         }
@@ -441,10 +441,10 @@ private struct TwistRenderer {
     private func addFgEdge(
         id: String,
         zIndex: ZIndex = .relative(0),
-        commands: @escaping (Finalizers<TwistState>.Resolve) -> [PathCommand]
+        commands: @escaping (SceneDeferred<TwistState>.Resolve) -> [PathCommand]
     ) {
         finalizers.add { resolve in
-            path(commands(resolve))
+            ScenePath(commands(resolve))
                 .id(id)
                 .stroke(.black, lineWidth: Twist.fgEdgeWidth)
                 .zIndex(zIndex)
@@ -455,7 +455,7 @@ private struct TwistRenderer {
     // MARK: Traditional diagram
 
     /// The same map, drawn the textbook way: two trees and some arrows.
-    func drawTraditional() -> [Node<TwistState>] {
+    func drawTraditional() -> [SceneNode<TwistState>] {
         let domain = drawPlainTree(universe.tree, prefix: "domain", fill: .black, edgeWidth: Twist.fgEdgeWidth)
         let codomain = drawPlainTree(universe.tree, prefix: "codomain", fill: Twist.bgFill, edgeWidth: Twist.bgEdgeWidth)
 
@@ -464,8 +464,8 @@ private struct TwistRenderer {
         }
 
         return [
-            Node(children: [domain.node]).transform(.translate(0, Twist.traditionalY)),
-            Node(children: [codomain.node])
+            SceneNode(children: [domain.node]).transform(.translate(0, Twist.traditionalY)),
+            SceneNode(children: [codomain.node])
                 .transform(.translate(domain.width + Twist.traditionalGap, Twist.traditionalY)),
         ]
     }
@@ -475,20 +475,20 @@ private struct TwistRenderer {
         let radius = Twist.fgSize / 2
 
         finalizers.add { resolve in
-            let start = resolve(PointRef("domain-\(source)"))
-            let end = resolve(PointRef("codomain-\(target)"))
+            let start = resolve(ScenePoint("domain-\(source)"))
+            let end = resolve(ScenePoint("codomain-\(target)"))
             let bow = Vec2(0, -start.distance(to: end) / Twist.arrowBowDivisor)
             let middle = Vec2.lerp(start, end, 1.0 / 2) + bow
             let tail = start.towards(middle, by: radius)
             let tip = end.towards(middle, by: radius)
             let halfWidth = Twist.arrowHeadLength * tan(Twist.arrowHeadAngle / 2)
 
-            return group {
-                path([.move(tail), .quad(control: middle, end: tip.towards(middle, by: Twist.arrowHeadInset))])
+            return SceneGroup {
+                ScenePath([.move(tail), .quad(control: middle, end: tip.towards(middle, by: Twist.arrowHeadInset))])
                     .stroke(Twist.arrow, lineWidth: Twist.fgEdgeWidth)
                     .hitTesting(.disabled)
 
-                path([
+                ScenePath([
                     .move(.zero),
                     .line(Vec2(-Twist.arrowHeadLength, halfWidth)),
                     .line(Vec2(-Twist.arrowHeadLength, -halfWidth)),
@@ -502,8 +502,8 @@ private struct TwistRenderer {
         }
     }
 
-    private func drawPlainTree(_ node: TwistTree, prefix: String, fill: RGBA, edgeWidth: Double) -> Drawn {
-        var parts: [Node<TwistState>] = []
+    private func drawPlainTree(_ node: TwistTree, prefix: String, fill: SceneColor, edgeWidth: Double) -> Drawn {
+        var parts: [SceneNode<TwistState>] = []
         var childrenX = 0.0
         var childrenHeight = 0.0
 
@@ -513,7 +513,7 @@ private struct TwistRenderer {
             let drawn = drawPlainTree(child, prefix: prefix, fill: fill, edgeWidth: edgeWidth)
 
             parts.append(
-                Node(children: [drawn.node])
+                SceneNode(children: [drawn.node])
                     .id("\(prefix)-child-\(node.id)-\(child.id)")
                     .transform(.translate(childrenX, 0))
             )
@@ -521,11 +521,11 @@ private struct TwistRenderer {
             childrenX += drawn.width
             childrenHeight = max(childrenHeight, drawn.height)
 
-            let start = PointRef("\(prefix)-\(node.id)")
-            let end = PointRef("\(prefix)-\(child.id)")
+            let start = ScenePoint("\(prefix)-\(node.id)")
+            let end = ScenePoint("\(prefix)-\(child.id)")
 
             finalizers.add { resolve in
-                line(from: resolve(start), to: resolve(end))
+                SceneLine(from: resolve(start), to: resolve(end))
                     .id("\(prefix)-edge-\(node.id)-\(child.id)")
                     .stroke(fill, lineWidth: edgeWidth)
                     .hitTesting(.disabled)
@@ -534,13 +534,13 @@ private struct TwistRenderer {
 
         let nodeX = childrenX < Twist.fgSize ? Twist.fgSize / 2 : childrenX / 2
 
-        let drawn: Node<TwistState> = group {
-            circle(radius: Twist.fgSize / 2)
+        let drawn: SceneNode<TwistState> = SceneGroup {
+            SceneCircle(radius: Twist.fgSize / 2)
                 .id("\(prefix)-\(node.id)")
                 .fill(fill)
                 .transform(.translate(nodeX, Twist.fgSize / 2))
 
-            Node<TwistState>(children: parts).transform(.translate(0, Twist.fgSize + Twist.fgGap))
+            SceneNode<TwistState>(children: parts).transform(.translate(0, Twist.fgSize + Twist.fgGap))
         }
 
         let height = Twist.fgSize + (childrenHeight > 0 ? Twist.fgGap + childrenHeight : 0)

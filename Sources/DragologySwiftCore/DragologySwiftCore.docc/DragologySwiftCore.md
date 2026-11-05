@@ -15,7 +15,7 @@ be dragged to. The engine renders those states speculatively, finds where the el
 lands in each one, and builds the drag from that: drop zones, previews, and animation.
 
 Add the `DragologySwift` product to your app. It brings in this module, along with
-`DraggableCanvas`, the SwiftUI view that hosts a scene.
+`DragCanvas`, the SwiftUI view that hosts a scene.
 
 ## Topics
 
@@ -28,27 +28,27 @@ Add the `DragologySwift` product to your app. It brings in this module, along wi
 
 ### Drawing
 
-- ``Node``
-- ``NodeBuilder``
-- ``Transform``
-- ``Style``
-- ``RGBA``
-- ``Shape``
+- ``SceneNode``
+- ``SceneNodeBuilder``
+- ``SceneTransform``
+- ``SceneStyle``
+- ``SceneColor``
+- ``SceneShape``
 - ``PathCommand``
 - ``ZIndex``
 - ``EmergeMode``
 - ``HitTesting``
-- ``Finalizers``
-- ``PointRef``
+- ``SceneDeferred``
+- ``ScenePoint``
 
 ### Describing drags
 
-- ``Draggable``
-- ``RenderContext``
+- ``DragScene``
+- ``SceneContext``
 - ``DragSpec``
 - ``DragSpecBuilder``
-- ``Constraint``
-- ``Transition``
+- ``DragConstraint``
+- ``DragTransition``
 - ``ClosestOptions``
 - ``BetweenOptions``
 - ``BetweenInterpolation``
@@ -58,16 +58,16 @@ Add the `DragologySwift` product to your app. It brings in this module, along wi
 
 ### Writing your own operators
 
-- ``Operator``
+- ``DragOperator``
 - ``DragContext``
 - ``DragFrame``
 - ``DragResult``
-- ``Chaining``
-- ``Lazy``
+- ``DragChaining``
+- ``LazyPreview``
 
 ### Running a drag
 
 - ``DragEngine``
 - ``LayeredScene``
-- ``Layer``
+- ``SceneLayer``
 - ``Vec2``

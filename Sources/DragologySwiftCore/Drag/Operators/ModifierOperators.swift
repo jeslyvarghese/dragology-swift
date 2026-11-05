@@ -1,8 +1,8 @@
 import Foundation
 
 /// Adjusts the wrapped spec's result on each frame.
-final class ResultModifierOperator<State: Equatable>: Operator<State> {
-    private let inner: Operator<State>
+final class ResultModifierOperator<State: Equatable>: DragOperator<State> {
+    private let inner: DragOperator<State>
     private let change: (inout DragResult<State>, DragFrame) -> Void
 
     init(
@@ -25,8 +25,8 @@ final class ResultModifierOperator<State: Equatable>: Operator<State> {
 }
 
 /// Transforms the wrapped spec's drop state, then re-renders it.
-final class DuringOperator<State: Equatable>: Operator<State> {
-    private let inner: Operator<State>
+final class DuringOperator<State: Equatable>: DragOperator<State> {
+    private let inner: DragOperator<State>
     private let transform: (State) -> State
 
     init(context: DragContext<State>, inner: DragSpec<State>, transform: @escaping (State) -> State) {
@@ -42,7 +42,7 @@ final class DuringOperator<State: Equatable>: Operator<State> {
         let scene = context.render(state)
         let position = context.position(in: scene)
 
-        result.preview = Lazy { scene }
+        result.preview = LazyPreview { scene }
         result.dropState = state
         result.gap = position?.distance(to: frame.pointer) ?? .infinity
         result.grabPosition = position
@@ -52,11 +52,11 @@ final class DuringOperator<State: Equatable>: Operator<State> {
 }
 
 /// Draws fixed content above the wrapped spec's preview.
-final class OverlayOperator<State: Equatable>: Operator<State> {
-    private let inner: Operator<State>
+final class OverlayOperator<State: Equatable>: DragOperator<State> {
+    private let inner: DragOperator<State>
     private let overlay: LayeredScene<State>
 
-    init(context: DragContext<State>, inner: DragSpec<State>, overlay: Node<State>) {
+    init(context: DragContext<State>, inner: DragSpec<State>, overlay: SceneNode<State>) {
         self.inner = inner.makeOperator(context)
 
         // Overlays sit above even floating elements. Each gets a prefix
@@ -64,7 +64,7 @@ final class OverlayOperator<State: Equatable>: Operator<State> {
         let topStackingStep = 2_000_000
         let prefix = "overlay-\(UUID().uuidString)-"
 
-        self.overlay = LayeredScene(root: Node(children: [overlay]))
+        self.overlay = LayeredScene(root: SceneNode(children: [overlay]))
             .prefixingIDs(prefix)
             .mapLayers { $0.stackingPath.insert(topStackingStep, at: 0) }
 
@@ -76,15 +76,15 @@ final class OverlayOperator<State: Equatable>: Operator<State> {
         let preview = result.preview
         let overlay = self.overlay
 
-        result.preview = Lazy { preview.value.merging(overlay) }
+        result.preview = LazyPreview { preview.value.merging(overlay) }
 
         return result
     }
 }
 
 /// Remaps the frame before the wrapped spec sees it.
-final class ChangeFrameOperator<State: Equatable>: Operator<State> {
-    private let inner: Operator<State>
+final class ChangeFrameOperator<State: Equatable>: DragOperator<State> {
+    private let inner: DragOperator<State>
     private let transform: (DragFrame) -> DragFrame
 
     init(context: DragContext<State>, inner: DragSpec<State>, transform: @escaping (DragFrame) -> DragFrame) {
@@ -100,7 +100,7 @@ final class ChangeFrameOperator<State: Equatable>: Operator<State> {
 }
 
 /// A behavior written by hand, as a function of the frame.
-final class CustomOperator<State: Equatable>: Operator<State> {
+final class CustomOperator<State: Equatable>: DragOperator<State> {
     private let behavior: (DragFrame) -> DragResult<State>
 
     init(context: DragContext<State>, behavior: @escaping (DragFrame) -> DragResult<State>) {

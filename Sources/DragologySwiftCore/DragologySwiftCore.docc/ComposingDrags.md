@@ -6,22 +6,22 @@ Build complex drags out of simple ones.
 
 | Spec | Behavior |
 |---|---|
-| `d.fixed(state)` | Show one state |
-| `d.vary(state, \.x, \.y, constraint:, pin:)` | Solve for numbers that bring the element to the finger |
-| `d.varyFunction(initial:, state:, ...)` | `vary`, for parameters that change state in concert |
-| `d.dropTarget(id, state, boundsState:)` | Show a state while over the element `id` |
-| `d.custom { context in { frame in ... } }` | Write a behavior from scratch |
+| `drag.fixed(state)` | Show one state |
+| `drag.vary(state, \.x, \.y, constraint:, pin:)` | Solve for numbers that bring the element to the finger |
+| `drag.varyFunction(initial:, state:, ...)` | `vary`, for parameters that change state in concert |
+| `drag.dropTarget(id, state, boundsState:)` | Show a state while over the element `id` |
+| `drag.custom { context in { frame in ... } }` | Write a behavior from scratch |
 
 ## Combinators
 
 | Spec | Behavior |
 |---|---|
-| `d.closest(statesOrSpecs, options:)` | Follow whichever option lands closest to the finger |
-| `d.between(statesOrSpecs, options:)` | Blend between targets, inside their convex hull |
+| `drag.closest(statesOrSpecs, options:)` | Follow whichever option lands closest to the finger |
+| `drag.between(statesOrSpecs, options:)` | Blend between targets, inside their convex hull |
 | `.whenFar(specOrState, gap:)` | Switch to a background spec when far from this one |
-| `d.switchToStateAndFollow(state, id, followSpec:)` | Jump to a state, and carry on dragging another element |
-| `d.reactTo(value, makeSpec)` | Rebuild a spec when a value changes mid-drag |
-| `d.substate(state, \.part) { d in ... }` | Write a spec for one part of the state |
+| `drag.switchToStateAndFollow(state, id, followSpec:)` | Jump to a state, and carry on dragging another element |
+| `drag.reactTo(value, makeSpec)` | Rebuild a spec when a value changes mid-drag |
+| `drag.substate(state, \.part) { drag in ... }` | Write a spec for one part of the state |
 
 ## Modifiers
 
@@ -42,9 +42,9 @@ Build complex drags out of simple ones.
 The same list of states gives three different drags:
 
 ```swift
-d.between(orders)                // slides between positions
-d.closest(orders)                // jumps between positions
-d.closest(orders).withFloating() // follows the finger, and the rest make room
+drag.between(orders)                // slides between positions
+drag.closest(orders)                // jumps between positions
+drag.closest(orders).withFloating() // follows the finger, and the rest make room
 ```
 
 ## Islands in a sea
@@ -52,19 +52,19 @@ d.closest(orders).withFloating() // follows the finger, and the rest make room
 Snap to fixed spots when near them, and roam freely otherwise:
 
 ```swift
-d.closest(islands)
+drag.closest(islands)
     .withFloating()
-    .whenFar(d.vary(IslandState(island: nil), \.x, \.y))
+    .whenFar(drag.vary(IslandState(island: nil), \.x, \.y))
 ```
 
 ## Constraints
 
-A `vary` constraint returns numbers that must end up at or below zero. ``Constraint`` has
+A `vary` constraint returns numbers that must end up at or below zero. ``DragConstraint`` has
 helpers, which combine with `+`:
 
 ```swift
-d.vary(state, \.value, constraint: { candidate in
-    Constraint.inOrder(0, candidate.value, 240)
+drag.vary(state, \.value, constraint: { candidate in
+    DragConstraint.inOrder(0, candidate.value, 240)
 })
 ```
 
@@ -74,11 +74,11 @@ A spec is normally fixed when the drag starts. Chaining commits to a state partw
 and starts a fresh spec from there, so one drag can make a series of moves:
 
 ```swift
-d.closest(steps).withSnapRadius(10, chaining: .chainOnSnap)
+drag.closest(steps).withSnapRadius(10, chaining: .chainOnSnap)
 ```
 
 ## Your own operators
 
-Subclass ``Operator`` and override ``Operator/frame(_:)``, then wrap it with
+Subclass ``DragOperator`` and override ``DragOperator/frame(_:)``, then wrap it with
 ``DragSpec/init(_:)``. Reusable modifiers can be plain functions from spec to spec, applied
 with ``DragSpec/with(_:)``.

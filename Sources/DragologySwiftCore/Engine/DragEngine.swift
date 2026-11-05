@@ -9,7 +9,7 @@ public final class DragEngine<State: Equatable> {
     private struct Spring {
         var origin: LayeredScene<State>
         var startTime: TimeInterval
-        var transition: Transition
+        var transition: DragTransition
 
         func isFinished(at now: TimeInterval) -> Bool {
             now - startTime >= transition.duration
@@ -26,7 +26,7 @@ public final class DragEngine<State: Equatable> {
 
     private struct ActiveDrag {
         var context: DragContext<State>
-        var behavior: Operator<State>
+        var behavior: DragOperator<State>
         var result: DragResult<State>
     }
 
@@ -43,7 +43,7 @@ public final class DragEngine<State: Equatable> {
     /// True while the host needs to keep calling `tick`.
     public private(set) var needsFrames = false
 
-    @ObservationIgnored private let draggable: Draggable<State>
+    @ObservationIgnored private let sceneFunction: DragScene<State>
     @ObservationIgnored private let dragThreshold: Double
     @ObservationIgnored private var phase = Phase.idle
     @ObservationIgnored private var spring: Spring?
@@ -54,18 +54,18 @@ public final class DragEngine<State: Equatable> {
     ///   - state: The state to start from.
     ///   - dragThreshold: How far a press on a tappable element must travel
     ///     before it's a drag and not a tap.
-    ///   - draggable: The render function.
+    ///   - sceneFunction: The render function.
     public init(
         state: State,
         dragThreshold: Double = DragEngine.standardDragThreshold,
-        draggable: @escaping Draggable<State>
+        scene sceneFunction: @escaping DragScene<State>
     ) {
         self.state = state
         self.dragThreshold = dragThreshold
-        self.draggable = draggable
+        self.sceneFunction = sceneFunction
 
         // `setState` needs `self`, so the first render can't use it yet.
-        let first = Self.interactiveRender(draggable, state, setState: { _, _ in })
+        let first = Self.interactiveRender(sceneFunction, state, setState: { _, _ in })
         idleScene = first
         scene = first
 
@@ -73,6 +73,14 @@ public final class DragEngine<State: Equatable> {
     }
 
     public static var standardDragThreshold: Double { 2 }
+
+    /// Whether a press here would do anything. A host can leave other
+    /// touches alone, so that they reach whatever's behind it.
+    public func wouldHandlePress(at point: Vec2) -> Bool {
+        guard case .idle = phase, let hit = idleScene.hitTest(point) else { return false }
+
+        return hit.dragTarget != nil || hit.onTap != nil
+    }
 
     // MARK: Pointer events
 
@@ -155,7 +163,7 @@ public final class DragEngine<State: Equatable> {
         }
 
         let context = DragContext(
-            draggable: draggable,
+            scene: sceneFunction,
             draggedPath: target.node.path,
             draggedID: target.node.id,
             anchor: anchor,
@@ -258,7 +266,7 @@ public final class DragEngine<State: Equatable> {
 
     /// Changes state from outside a drag. Ignored during a drag, as the
     /// drop is about to decide the state anyway.
-    public func setState(_ newState: State, transition: Transition? = .standard, now: TimeInterval) {
+    public func setState(_ newState: State, transition: DragTransition? = .standard, now: TimeInterval) {
         guard newState != state else { return }
 
         if case .dragging = phase { return }
@@ -278,7 +286,7 @@ public final class DragEngine<State: Equatable> {
     // MARK: Rendering
 
     private func refreshIdleScene() {
-        idleScene = Self.interactiveRender(draggable, state) { [weak self] newState, transition in
+        idleScene = Self.interactiveRender(sceneFunction, state) { [weak self] newState, transition in
             self?.setState(newState, transition: transition, now: Self.currentTime)
         }
         scene = idleScene
@@ -287,21 +295,21 @@ public final class DragEngine<State: Equatable> {
     private static var currentTime: TimeInterval { Date.timeIntervalSinceReferenceDate }
 
     private static func interactiveRender(
-        _ draggable: Draggable<State>,
+        _ sceneFunction: DragScene<State>,
         _ state: State,
-        setState: @escaping (State, Transition?) -> Void
+        setState: @escaping (State, DragTransition?) -> Void
     ) -> LayeredScene<State> {
-        let context = RenderContext(
+        let context = SceneContext(
             state: state,
             draggedID: nil,
             isTracking: false,
             applyState: setState
         )
 
-        return LayeredScene(root: draggable(context).assigningPaths())
+        return LayeredScene(root: sceneFunction(context).assigningPaths())
     }
 
-    private func startSpring(from origin: LayeredScene<State>, transition: Transition, now: TimeInterval) {
+    private func startSpring(from origin: LayeredScene<State>, transition: DragTransition, now: TimeInterval) {
         spring = Spring(origin: origin, startTime: now, transition: transition)
         needsFrames = true
     }

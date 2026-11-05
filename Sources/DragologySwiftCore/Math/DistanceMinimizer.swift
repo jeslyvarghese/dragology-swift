@@ -11,7 +11,7 @@ import Foundation
 /// matters. It does assume the point moves smoothly with the parameters.
 ///
 /// Stateful: each call warm-starts from the previous solution.
-public struct DistanceMinimizer {
+struct DistanceMinimizer {
     private enum Limits {
         static let maxIterations = 16
         /// Damping starts small, and adapts as steps succeed or fail.
@@ -34,13 +34,13 @@ public struct DistanceMinimizer {
         static let gradientFloor = 1e-12
     }
 
-    public private(set) var parameters: [Double]
+    private(set) var parameters: [Double]
 
-    public init(parameters: [Double]) {
+    init(parameters: [Double]) {
         self.parameters = parameters
     }
 
-    public mutating func minimize(
+    mutating func minimize(
         target: Vec2,
         position: ([Double]) -> Vec2?,
         constraints: (([Double]) -> [Double])? = nil
@@ -348,7 +348,7 @@ public struct DistanceMinimizer {
 
 /// Helpers for `vary` constraints. Each returns values that must end
 /// up `<= 0`, so they can be concatenated with `+`.
-public enum Constraint {
+public enum DragConstraint {
     public static func lessThan(_ a: Double, _ b: Double) -> [Double] { [a - b] }
     public static func moreThan(_ a: Double, _ b: Double) -> [Double] { [b - a] }
     public static func equal(_ a: Double, _ b: Double) -> [Double] { [a - b, b - a] }

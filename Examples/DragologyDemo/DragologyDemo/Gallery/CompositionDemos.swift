@@ -22,19 +22,19 @@ private enum Islands {
     static let lineWidth = 2.0
 }
 
-func islands(_ context: RenderContext<IslandState>) -> Node<IslandState> {
+func islands(_ context: SceneContext<IslandState>) -> SceneNode<IslandState> {
     let state = context.state
-    let d = context.d
+    let d = context.drag
     let position = state.island.map { Islands.positions[$0] } ?? Vec2(state.x, state.y)
 
-    return group {
+    return SceneGroup {
         for (index, island) in Islands.positions.enumerated() {
-            circle(radius: state.island == index ? Islands.bigRadius : Islands.smallRadius)
+            SceneCircle(radius: state.island == index ? Islands.bigRadius : Islands.smallRadius)
                 .stroke(Ink.outline, lineWidth: Islands.lineWidth)
                 .transform(.translate(island))
         }
 
-        circle(radius: Islands.dotRadius)
+        SceneCircle(radius: Islands.dotRadius)
             .id("dot")
             .fill(Ink.blue)
             .transform(.translate(position))
@@ -53,7 +53,7 @@ struct MagnetState: Equatable {
 }
 
 private enum Magnets {
-    static let targets: [(position: Vec2, strength: Double, color: RGBA)] = [
+    static let targets: [(position: Vec2, strength: Double, color: SceneColor)] = [
         (Vec2(100, 140), 0.6, Ink.muted),
         (Vec2(200, 60), 1, Ink.red),
         (Vec2(320, 140), 2.5, Ink.blue),
@@ -67,22 +67,22 @@ private enum Magnets {
     static let labelOffset = 28.0
 }
 
-func magnets(_ context: RenderContext<MagnetState>) -> Node<MagnetState> {
-    let d = context.d
+func magnets(_ context: SceneContext<MagnetState>) -> SceneNode<MagnetState> {
+    let d = context.drag
 
-    return group {
+    return SceneGroup {
         for (index, target) in Magnets.targets.enumerated() {
-            group {
-                circle(radius: Magnets.haloBase / target.strength)
+            SceneGroup {
+                SceneCircle(radius: Magnets.haloBase / target.strength)
                     .fill(target.color.withOpacity(Magnets.haloOpacity))
                     .stroke(target.color.withOpacity(Magnets.targetOpacity))
                     .hitTesting(.disabled)
 
-                circle(radius: Magnets.targetRadius)
+                SceneCircle(radius: Magnets.targetRadius)
                     .fill(target.color.withOpacity(Magnets.targetOpacity))
                     .hitTesting(.disabled)
 
-                label("×\(target.strength)", size: Magnets.labelSize)
+                SceneText("×\(target.strength)", size: Magnets.labelSize)
                     .fill(Ink.text)
                     .transform(.translate(0, Magnets.labelOffset))
                     .hitTesting(.disabled)
@@ -91,7 +91,7 @@ func magnets(_ context: RenderContext<MagnetState>) -> Node<MagnetState> {
             .transform(.translate(target.position))
         }
 
-        circle(radius: Magnets.puckRadius)
+        SceneCircle(radius: Magnets.puckRadius)
             .id("puck")
             .fill(Ink.text)
             .stroke(.white, lineWidth: 2)
@@ -128,24 +128,24 @@ private enum Sharpness {
     static let labelOffset = -9.0
 }
 
-func sharpness(_ context: RenderContext<SharpnessState>) -> Node<SharpnessState> {
+func sharpness(_ context: SceneContext<SharpnessState>) -> SceneNode<SharpnessState> {
     let state = context.state
 
-    return group {
+    return SceneGroup {
         for (index, level) in Sharpness.levels.enumerated() {
-            group {
-                label("sharpness: \(level)", size: Sharpness.labelSize)
+            SceneGroup {
+                SceneText("sharpness: \(level)", size: Sharpness.labelSize)
                     .fill(Ink.muted)
                     .transform(.translate(Sharpness.switchWidth / 2, Sharpness.labelOffset))
 
-                rect(
+                SceneRect(
                     width: Sharpness.switchWidth,
                     height: Sharpness.switchHeight,
                     cornerRadius: Sharpness.switchHeight / 2
                 )
                 .fill(state.isOn ? Ink.green : Ink.outline)
 
-                circle(radius: Sharpness.knobRadius)
+                SceneCircle(radius: Sharpness.knobRadius)
                     .id("knob-\(index)")
                     .fill(.white)
                     .transform(.translate(
@@ -153,7 +153,7 @@ func sharpness(_ context: RenderContext<SharpnessState>) -> Node<SharpnessState>
                         Sharpness.switchHeight / 2
                     ))
                     .onDrag {
-                        context.d.between(
+                        context.drag.between(
                             [SharpnessState(isOn: false), SharpnessState(isOn: true)],
                             options: BetweenOptions(sharpness: level)
                         )
@@ -174,7 +174,7 @@ struct BlendState: Equatable {
 }
 
 private enum BlendGrid {
-    static let targets: [(position: Vec2, color: RGBA)] = [
+    static let targets: [(position: Vec2, color: SceneColor)] = [
         (Vec2(40, 40), Ink.red),
         (Vec2(300, 60), Ink.blue),
         (Vec2(280, 260), Ink.green),
@@ -206,18 +206,18 @@ enum BlendMode: Int, CaseIterable {
     }
 }
 
-func blendWeights(mode: BlendMode) -> Draggable<BlendState> {
+func blendWeights(mode: BlendMode) -> DragScene<BlendState> {
     { context in
         let target = BlendGrid.targets[context.state.corner]
 
-        return group {
+        return SceneGroup {
             for other in BlendGrid.targets {
-                circle(radius: BlendGrid.markerRadius)
+                SceneCircle(radius: BlendGrid.markerRadius)
                     .fill(other.color)
                     .transform(.translate(other.position))
             }
 
-            rect(
+            SceneRect(
                 width: BlendGrid.swatchSide,
                 height: BlendGrid.swatchSide,
                 cornerRadius: BlendGrid.swatchCornerRadius
@@ -225,12 +225,12 @@ func blendWeights(mode: BlendMode) -> Draggable<BlendState> {
             .fill(target.color)
             .transform(.translate(BlendGrid.swatchPosition))
 
-            circle(radius: BlendGrid.dotRadius)
+            SceneCircle(radius: BlendGrid.dotRadius)
                 .id("dot")
                 .fill(target.color)
                 .transform(.translate(target.position))
                 .onDrag {
-                    context.d.between(
+                    context.drag.between(
                         BlendGrid.targets.indices.map { BlendState(corner: $0) },
                         options: BetweenOptions(interpolation: mode.interpolation)
                     )
@@ -254,20 +254,20 @@ private enum Emerge {
     static let lineWidth = 2.0
 }
 
-func emerge(_ context: RenderContext<EmergeState>) -> Node<EmergeState> {
+func emerge(_ context: SceneContext<EmergeState>) -> SceneNode<EmergeState> {
     let state = context.state
 
-    return group {
-        circle(radius: Emerge.radius)
+    return SceneGroup {
+        SceneCircle(radius: Emerge.radius)
             .id("dot")
             .fill(Ink.blue)
             .transform(.translate(state.isRight ? Emerge.rightX : Emerge.leftX, Emerge.y))
             .onDrag {
-                context.d.between([EmergeState(isRight: false), EmergeState(isRight: true)])
+                context.drag.between([EmergeState(isRight: false), EmergeState(isRight: true)])
             }
 
         if state.isRight {
-            circle(radius: Emerge.radius)
+            SceneCircle(radius: Emerge.radius)
                 .id("second-dot")
                 .fill(Ink.amber)
                 .stroke(Ink.text, lineWidth: Emerge.lineWidth)
@@ -359,23 +359,23 @@ private func sproutLayout(_ node: SproutNode, x: Double, y: Double) -> [String: 
     return positions
 }
 
-func sproutingTree(_ context: RenderContext<SproutState>) -> Node<SproutState> {
+func sproutingTree(_ context: SceneContext<SproutState>) -> SceneNode<SproutState> {
     let positions = sproutLayout(context.state.root, x: Sprout.centerX, y: Sprout.top)
 
-    return group { sproutSubtree(context.state.root, positions: positions, context: context) }
+    return SceneGroup { sproutSubtree(context.state.root, positions: positions, context: context) }
 }
 
 private func sproutSubtree(
     _ node: SproutNode,
     positions: [String: Vec2],
-    context: RenderContext<SproutState>
-) -> Node<SproutState> {
+    context: SceneContext<SproutState>
+) -> SceneNode<SproutState> {
     let position = positions[node.id] ?? .zero
     let isLeaf = node.children.isEmpty
 
-    return group {
+    return SceneGroup {
         for (index, child) in node.children.enumerated() {
-            line(from: position, to: positions[child.id] ?? .zero)
+            SceneLine(from: position, to: positions[child.id] ?? .zero)
                 .id("edge-\(node.id)-\(index)")
                 .stroke(Ink.outline, lineWidth: Sprout.lineWidth)
                 .emergeFrom(node.emergeOrigin ?? child.emergeOrigin)
@@ -395,12 +395,12 @@ private func sproutDot(
     _ node: SproutNode,
     position: Vec2,
     isLeaf: Bool,
-    context: RenderContext<SproutState>
-) -> Node<SproutState> {
+    context: SceneContext<SproutState>
+) -> SceneNode<SproutState> {
     let state = context.state
-    let d = context.d
+    let d = context.drag
 
-    let dot: Node<SproutState> = circle(radius: Sprout.nodeRadius)
+    let dot: SceneNode<SproutState> = SceneCircle(radius: Sprout.nodeRadius)
         .id(node.id)
         .fill(isLeaf ? Ink.blue : Ink.faint)
         .stroke(isLeaf ? Ink.text : Ink.muted, lineWidth: Sprout.lineWidth)
@@ -429,7 +429,7 @@ private func sproutDot(
 struct CopyDot: Equatable {
     var id: String
     var position: Vec2
-    var color: RGBA
+    var color: SceneColor
 }
 
 struct CopyState: Equatable {
@@ -455,13 +455,13 @@ private enum Copies {
     static let radius = 26.0
 }
 
-func dragToCopy(_ context: RenderContext<CopyState>) -> Node<CopyState> {
+func dragToCopy(_ context: SceneContext<CopyState>) -> SceneNode<CopyState> {
     let state = context.state
-    let d = context.d
+    let d = context.drag
 
-    return group {
+    return SceneGroup {
         for (index, dot) in state.dots.enumerated() {
-            circle(radius: Copies.radius)
+            SceneCircle(radius: Copies.radius)
                 .id("dot-\(dot.id)")
                 .fill(dot.color)
                 .transform(.translate(dot.position))
@@ -493,14 +493,14 @@ final class CopySwitch {
     var isCopying = false
 }
 
-func copyOrMove(_ isCopying: CopySwitch) -> Draggable<CopyState> {
+func copyOrMove(_ isCopying: CopySwitch) -> DragScene<CopyState> {
     { context in
         let state = context.state
-        let d = context.d
+        let d = context.drag
 
-        return group {
+        return SceneGroup {
             for (index, dot) in state.dots.enumerated() {
-                circle(radius: Copies.radius)
+                SceneCircle(radius: Copies.radius)
                     .id("dot-\(dot.id)")
                     .fill(dot.color)
                     .transform(.translate(dot.position))
@@ -556,15 +556,15 @@ enum Shelf {
     static let lineWidth = 2.0
     static let origin = 8.0
     static let backgroundZ = -10
-    static let binFill = RGBA(hex: 0xFFEEEE)
+    static let binFill = SceneColor(hex: 0xFFEEEE)
 
     static var toolbarHeight: Double { tile + 2 * toolbarPadding }
     static var listY: Double { toolbarHeight + toolbarMargin }
 }
 
-func shelf(_ context: RenderContext<ShelfState>) -> Node<ShelfState> {
+func shelf(_ context: SceneContext<ShelfState>) -> SceneNode<ShelfState> {
     let state = context.state
-    let d = context.d
+    let d = context.drag
 
     // Offers every slot in the list, plus the bin.
     func dropSpots(in base: ShelfState, tile: ShelfTile) -> DragSpec<ShelfState> {
@@ -581,8 +581,8 @@ func shelf(_ context: RenderContext<ShelfState>) -> Node<ShelfState> {
         ])
     }
 
-    return group {
-        rect(
+    return SceneGroup {
+        SceneRect(
             width: Double(Shelf.store.count) * Shelf.tile + Shelf.toolbarExtraWidth,
             height: Shelf.toolbarHeight,
             cornerRadius: Shelf.cornerRadius
@@ -619,12 +619,12 @@ func shelf(_ context: RenderContext<ShelfState>) -> Node<ShelfState> {
             }
         }
 
-        group {
-            rect(width: Shelf.tile, height: Shelf.tile, cornerRadius: Shelf.cornerRadius)
+        SceneGroup {
+            SceneRect(width: Shelf.tile, height: Shelf.tile, cornerRadius: Shelf.cornerRadius)
                 .fill(Shelf.binFill)
                 .stroke(Ink.muted, lineWidth: Shelf.lineWidth)
 
-            label("🗑", size: Shelf.binFontSize)
+            SceneText("🗑", size: Shelf.binFontSize)
                 .transform(.translate(Shelf.tile / 2, Shelf.tile / 2))
         }
         .id("bin")
@@ -637,13 +637,13 @@ private func shelfTile(
     _ tile: ShelfTile,
     at position: Vec2,
     onDrag: @escaping () -> DragSpec<ShelfState>
-) -> Node<ShelfState> {
-    group {
-        rect(width: Shelf.tile, height: Shelf.tile)
+) -> SceneNode<ShelfState> {
+    SceneGroup {
+        SceneRect(width: Shelf.tile, height: Shelf.tile)
             .fill(.white)
             .stroke(.black, lineWidth: Shelf.lineWidth)
 
-        label(tile.label, size: Shelf.fontSize)
+        SceneText(tile.label, size: Shelf.fontSize)
             .transform(.translate(Shelf.tile / 2, Shelf.tile / 2))
     }
     .id("tile-\(tile.id)")
@@ -657,7 +657,7 @@ struct TimelineBlock: Equatable {
     var id: String
     var position: Double
     var track: Int
-    var color: RGBA
+    var color: SceneColor
 }
 
 struct TimelineState: Equatable {
@@ -681,7 +681,7 @@ private enum Timeline {
     static let margin = 10.0
     static let cornerRadius = 6.0
     static let fontSize = 13.0
-    static let branchTransition = Transition(easing: .cubicOut, duration: 0.1)
+    static let branchTransition = DragTransition(easing: .cubicOut, duration: 0.1)
     static let draggedZ = 1
 }
 
@@ -692,19 +692,19 @@ private func blockSpec(_ d: DragSpecBuilder<TimelineBlock>, _ block: TimelineBlo
         moved.track = track
 
         return d.vary(moved, \.position, constraint: { candidate in
-            Constraint.inOrder(0, candidate.position, Timeline.trackWidth - Timeline.blockWidth)
+            DragConstraint.inOrder(0, candidate.position, Timeline.trackWidth - Timeline.blockWidth)
         })
     }
 
     return d.closest(onTracks).withBranchTransition(Timeline.branchTransition)
 }
 
-private func blockShape<State>(_ block: TimelineBlock) -> Node<State> {
-    group {
-        rect(width: Timeline.blockWidth, height: Timeline.trackHeight, cornerRadius: Timeline.cornerRadius)
+private func blockShape<State>(_ block: TimelineBlock) -> SceneNode<State> {
+    SceneGroup {
+        SceneRect(width: Timeline.blockWidth, height: Timeline.trackHeight, cornerRadius: Timeline.cornerRadius)
             .fill(block.color)
 
-        label(block.id, size: Timeline.fontSize)
+        SceneText(block.id, size: Timeline.fontSize)
             .fill(.white)
             .transform(.translate(Timeline.blockWidth / 2, Timeline.trackHeight / 2))
     }
@@ -712,45 +712,45 @@ private func blockShape<State>(_ block: TimelineBlock) -> Node<State> {
     .transform(.translate(block.position, Double(block.track) * (Timeline.trackHeight + Timeline.gap)))
 }
 
-private func timelineTracks<State>() -> [Node<State>] {
+private func timelineTracks<State>() -> [SceneNode<State>] {
     (0..<Timeline.tracks).map { track in
-        rect(width: Timeline.trackWidth, height: Timeline.trackHeight, cornerRadius: Timeline.cornerRadius)
+        SceneRect(width: Timeline.trackWidth, height: Timeline.trackHeight, cornerRadius: Timeline.cornerRadius)
             .fill(Ink.panel)
             .stroke(Ink.faint)
             .transform(.translate(0, Double(track) * (Timeline.trackHeight + Timeline.gap)))
     }
 }
 
-/// Uses `d.substate`, so the spec only deals with one block.
-func timelineSubstate(_ context: RenderContext<TimelineState>) -> Node<TimelineState> {
+/// Uses `drag.substate`, so the spec only deals with one block.
+func timelineSubstate(_ context: SceneContext<TimelineState>) -> SceneNode<TimelineState> {
     let state = context.state
 
-    let blocks = state.blocks.enumerated().map { index, block -> Node<TimelineState> in
+    let blocks = state.blocks.enumerated().map { index, block -> SceneNode<TimelineState> in
         blockShape(block)
             .zIndex(.relative(context.draggedID == block.id ? Timeline.draggedZ : 0))
             .onDrag {
-                context.d.substate(state, \.blocks[index]) { d in blockSpec(d, block) }
+                context.drag.substate(state, \.blocks[index]) { d in blockSpec(d, block) }
             }
     }
 
-    return Node(children: timelineTracks() + blocks)
+    return SceneNode(children: timelineTracks() + blocks)
         .transform(.translate(Timeline.margin, Timeline.margin))
 }
 
 /// Uses `embed`, so each block is a draggable in its own right.
-func timelineEmbed(_ context: RenderContext<TimelineState>) -> Node<TimelineState> {
+func timelineEmbed(_ context: SceneContext<TimelineState>) -> SceneNode<TimelineState> {
     let blocks = context.state.blocks.indices.map { index in
         context.embed(blockDraggable, at: \.blocks[index])
     }
 
-    return Node(children: timelineTracks() + blocks)
+    return SceneNode(children: timelineTracks() + blocks)
         .transform(.translate(Timeline.margin, Timeline.margin))
 }
 
-private func blockDraggable(_ context: RenderContext<TimelineBlock>) -> Node<TimelineBlock> {
+private func blockDraggable(_ context: SceneContext<TimelineBlock>) -> SceneNode<TimelineBlock> {
     blockShape(context.state)
         .zIndex(.relative(context.draggedID == context.state.id ? Timeline.draggedZ : 0))
-        .onDrag { blockSpec(context.d, context.state) }
+        .onDrag { blockSpec(context.drag, context.state) }
 }
 
 // MARK: - Overlay
@@ -768,22 +768,22 @@ private enum Marker {
     static let farGap = 80.0
 }
 
-func marker(_ context: RenderContext<MarkerState>) -> Node<MarkerState> {
+func marker(_ context: SceneContext<MarkerState>) -> SceneNode<MarkerState> {
     let state = context.state
     let docked = MarkerState(isDocked: true)
 
-    let ring: Node<MarkerState> = circle(radius: Marker.ringRadius)
+    let ring: SceneNode<MarkerState> = SceneCircle(radius: Marker.ringRadius)
         .id("ring")
         .stroke(Ink.amber, lineWidth: Marker.lineWidth)
         .transform(.translate(Marker.dock))
 
-    return group {
-        circle(radius: Marker.radius)
+    return SceneGroup {
+        SceneCircle(radius: Marker.radius)
             .id("dot")
             .fill(Ink.blue)
             .transform(.translate(state.isDocked ? Marker.dock : Marker.home))
             .onDrag {
-                context.d
+                context.drag
                     .fixed(docked)
                     .whenFar(MarkerState(isDocked: false), gap: WhenFarGap(Marker.farGap))
                     .withOverlay(ring)

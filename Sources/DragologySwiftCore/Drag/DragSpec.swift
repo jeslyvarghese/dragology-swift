@@ -1,15 +1,15 @@
 import Foundation
 
 /// A declarative description of a drag. It's inert until a drag starts,
-/// when it's turned into a running `Operator`.
+/// when it's turned into a running `DragOperator`.
 public struct DragSpec<State: Equatable> {
-    let makeOperator: (DragContext<State>) -> Operator<State>
+    let makeOperator: (DragContext<State>) -> DragOperator<State>
     /// Set when this spec only shows a state, which `between` can
     /// render once instead of on every frame.
     let fixedState: State?
 
     /// Makes a spec from a custom operator.
-    public init(_ makeOperator: @escaping (DragContext<State>) -> Operator<State>) {
+    public init(_ makeOperator: @escaping (DragContext<State>) -> DragOperator<State>) {
         self.makeOperator = makeOperator
         fixedState = nil
     }
@@ -177,7 +177,7 @@ extension DragSpec {
     /// Jumps the preview to the drop state when within `radius` of it.
     public func withSnapRadius(
         _ radius: Double,
-        transition: Transition? = nil,
+        transition: DragTransition? = nil,
         chaining: SnapChaining = .none
     ) -> DragSpec {
         let inner = self
@@ -198,9 +198,9 @@ extension DragSpec {
     public func withChaining(
         draggedID: String? = nil,
         followSpec: DragSpec? = nil,
-        transition: Transition? = .standard
+        transition: DragTransition? = .standard
     ) -> DragSpec {
-        let chaining = Chaining(draggedID: draggedID, followSpec: followSpec, transition: transition)
+        let chaining = DragChaining(draggedID: draggedID, followSpec: followSpec, transition: transition)
 
         return mappingResult(name: "withChaining") { result, _ in
             result.chain = result.chain ?? chaining
@@ -209,7 +209,7 @@ extension DragSpec {
 
     /// Draws extra content over the preview while this spec is active,
     /// in canvas coordinates. It's gone on drop.
-    public func withOverlay(_ overlay: Node<State>) -> DragSpec {
+    public func withOverlay(_ overlay: SceneNode<State>) -> DragSpec {
         let inner = self
 
         return DragSpec { OverlayOperator(context: $0, inner: inner, overlay: overlay) }
@@ -273,14 +273,14 @@ extension DragSpec {
     }
 
     /// Sets the animation on drop. Nil drops without animating.
-    public func withDropTransition(_ transition: Transition?) -> DragSpec {
+    public func withDropTransition(_ transition: DragTransition?) -> DragSpec {
         mappingResult(name: "withDropTransition") { result, _ in
             result.dropTransition = transition
         }
     }
 
     /// Sets the animation between branches. Nil switches instantly.
-    public func withBranchTransition(_ transition: Transition?) -> DragSpec {
+    public func withBranchTransition(_ transition: DragTransition?) -> DragSpec {
         mappingResult(name: "withBranchTransition") { result, _ in
             result.branchTransition = transition
         }

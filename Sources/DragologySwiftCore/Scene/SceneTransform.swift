@@ -65,7 +65,7 @@ public struct Affine: Equatable, Sendable {
 ///
 /// Steps stay symbolic so that blending two transforms can turn an
 /// angle through its arc, instead of cutting across it.
-public struct Transform: Equatable, Sendable {
+public struct SceneTransform: Equatable, Sendable {
     public enum Step: Equatable, Sendable {
         case translate(Vec2)
         case rotate(degrees: Double, center: Vec2)
@@ -81,34 +81,34 @@ public struct Transform: Equatable, Sendable {
 
     public var steps: [Step]
 
-    public static let identity = Transform(steps: [])
+    public static let identity = SceneTransform(steps: [])
 
     public init(steps: [Step]) {
         self.steps = steps
     }
 
-    public static func translate(_ x: Double, _ y: Double) -> Transform {
+    public static func translate(_ x: Double, _ y: Double) -> SceneTransform {
         translate(Vec2(x, y))
     }
 
-    public static func translate(_ offset: Vec2) -> Transform {
-        Transform(steps: [.translate(offset)])
+    public static func translate(_ offset: Vec2) -> SceneTransform {
+        SceneTransform(steps: [.translate(offset)])
     }
 
-    public static func rotate(degrees: Double, around center: Vec2 = .zero) -> Transform {
-        Transform(steps: [.rotate(degrees: degrees, center: center)])
+    public static func rotate(degrees: Double, around center: Vec2 = .zero) -> SceneTransform {
+        SceneTransform(steps: [.rotate(degrees: degrees, center: center)])
     }
 
-    public static func scale(_ factor: Double) -> Transform {
-        Transform(steps: [.scale(Vec2(factor, factor))])
+    public static func scale(_ factor: Double) -> SceneTransform {
+        SceneTransform(steps: [.scale(Vec2(factor, factor))])
     }
 
-    public static func scale(x: Double, y: Double) -> Transform {
-        Transform(steps: [.scale(Vec2(x, y))])
+    public static func scale(x: Double, y: Double) -> SceneTransform {
+        SceneTransform(steps: [.scale(Vec2(x, y))])
     }
 
-    public static func + (outer: Transform, inner: Transform) -> Transform {
-        Transform(steps: outer.steps + inner.steps)
+    public static func + (outer: SceneTransform, inner: SceneTransform) -> SceneTransform {
+        SceneTransform(steps: outer.steps + inner.steps)
     }
 
     /// This transform as one matrix.
@@ -128,7 +128,7 @@ public struct Transform: Equatable, Sendable {
 
     /// Blends step by step when the two lists line up. Otherwise blends
     /// matrices, which is always defined but doesn't preserve arcs.
-    public static func lerp(_ a: Transform, _ b: Transform, _ t: Double) -> Transform {
+    public static func lerp(_ a: SceneTransform, _ b: SceneTransform, _ t: Double) -> SceneTransform {
         if a == b { return a }
 
         let stepsA = a.collapsingTranslations().steps
@@ -138,15 +138,15 @@ public struct Transform: Equatable, Sendable {
             let blended = zip(stepsA, stepsB).map { lerpStep($0, $1, t) }
 
             if blended.allSatisfy({ $0 != nil }) {
-                return Transform(steps: blended.compactMap { $0 })
+                return SceneTransform(steps: blended.compactMap { $0 })
             }
         }
 
-        return Transform(steps: [.matrix(Affine.lerp(a.affine, b.affine, t))])
+        return SceneTransform(steps: [.matrix(Affine.lerp(a.affine, b.affine, t))])
     }
 
     /// Nesting can give two renders different numbers of translations.
-    private func collapsingTranslations() -> Transform {
+    private func collapsingTranslations() -> SceneTransform {
         var result: [Step] = []
 
         for step in steps {
@@ -159,7 +159,7 @@ public struct Transform: Equatable, Sendable {
             result[result.count - 1] = .translate(previous + offset)
         }
 
-        return Transform(steps: result)
+        return SceneTransform(steps: result)
     }
 
     private static func lerpStep(_ a: Step, _ b: Step, _ t: Double) -> Step? {

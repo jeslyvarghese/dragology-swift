@@ -1,15 +1,15 @@
 import Foundation
 
 /// Shows one state, with the dragged element wherever that state puts it.
-final class FixedOperator<State: Equatable>: Operator<State> {
+final class FixedOperator<State: Equatable>: DragOperator<State> {
     private let state: State
     private let position: Vec2?
-    private let preview: Lazy<LayeredScene<State>>
+    private let preview: LazyPreview<LayeredScene<State>>
 
     init(context: DragContext<State>, state: State) {
         self.state = state
         position = context.position(in: state)
-        preview = Lazy { context.render(state) }
+        preview = LazyPreview { context.render(state) }
 
         super.init(context: context, name: "fixed")
     }

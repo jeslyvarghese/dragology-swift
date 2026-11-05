@@ -2,7 +2,7 @@ import Foundation
 
 /// Shows a state while the pointer is over a target element. The gap is
 /// all or nothing: zero inside the target, infinite outside it.
-final class DropTargetOperator<State: Equatable>: Operator<State> {
+final class DropTargetOperator<State: Equatable>: DragOperator<State> {
     private let state: State
     private let scene: LayeredScene<State>
     private let bounds: Bounds
@@ -26,7 +26,7 @@ final class DropTargetOperator<State: Equatable>: Operator<State> {
         let scene = self.scene
 
         return DragResult(
-            preview: Lazy { scene },
+            preview: LazyPreview { scene },
             dropState: state,
             gap: bounds.contains(frame.pointer) ? 0 : .infinity
         )

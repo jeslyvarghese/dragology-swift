@@ -34,15 +34,15 @@ private enum Bezier {
     static let lineWidth = 2.0
 }
 
-func bezier(_ context: RenderContext<BezierState>) -> Node<BezierState> {
+func bezier(_ context: SceneContext<BezierState>) -> SceneNode<BezierState> {
     let state = context.state
-    let d = context.d
+    let d = context.drag
 
-    return group {
-        line(from: state.p0, to: state.p1).stroke(Ink.outline).hitTesting(.disabled)
-        line(from: state.p3, to: state.p2).stroke(Ink.outline).hitTesting(.disabled)
+    return SceneGroup {
+        SceneLine(from: state.p0, to: state.p1).stroke(Ink.outline).hitTesting(.disabled)
+        SceneLine(from: state.p3, to: state.p2).stroke(Ink.outline).hitTesting(.disabled)
 
-        path([.move(state.p0), .cubic(control1: state.p1, control2: state.p2, end: state.p3)])
+        ScenePath([.move(state.p0), .cubic(control1: state.p1, control2: state.p2, end: state.p3)])
             .stroke(Ink.blue, lineWidth: Bezier.curveWidth)
             .hitTesting(.disabled)
 
@@ -53,7 +53,7 @@ func bezier(_ context: RenderContext<BezierState>) -> Node<BezierState> {
             let id = "curve-\(index)"
             let isDragged = context.draggedID == id
 
-            circle(radius: isDragged ? Bezier.draggedHandleRadius : Bezier.handleRadius)
+            SceneCircle(radius: isDragged ? Bezier.draggedHandleRadius : Bezier.handleRadius)
                 .id(id)
                 .fill(isDragged ? Ink.blue.withOpacity(Bezier.handleOpacity) : .clear)
                 .transform(.translate(state.point(at: t)))
@@ -87,15 +87,15 @@ private func bezierPoint(
     _ title: String,
     _ position: Vec2,
     radius: Double,
-    color: RGBA,
+    color: SceneColor,
     onDrag: @escaping () -> DragSpec<BezierState>
-) -> Node<BezierState> {
-    group {
-        circle(radius: radius)
+) -> SceneNode<BezierState> {
+    SceneGroup {
+        SceneCircle(radius: radius)
             .fill(color)
             .stroke(Ink.text, lineWidth: Bezier.lineWidth)
 
-        label(title, size: Bezier.labelSize)
+        SceneText(title, size: Bezier.labelSize)
             .fill(Ink.muted)
             .transform(.translate(0, -Bezier.labelOffset))
             .hitTesting(.disabled)
@@ -106,8 +106,8 @@ private func bezierPoint(
     .onDrag(onDrag)
 }
 
-extension RGBA {
-    func withOpacity(_ opacity: Double) -> RGBA {
+extension SceneColor {
+    func withOpacity(_ opacity: Double) -> SceneColor {
         var copy = self
         copy.alpha = opacity
         return copy
@@ -142,26 +142,26 @@ private enum Clock {
     static let minuteWidth = 4.0
 }
 
-func clock(_ context: RenderContext<ClockState>) -> Node<ClockState> {
+func clock(_ context: SceneContext<ClockState>) -> SceneNode<ClockState> {
     let state = context.state
 
-    func hand(_ id: String, degrees: Double, length: Double, width: Double) -> Node<ClockState> {
-        group {
-            line(from: .zero, to: Vec2(length, 0))
+    func hand(_ id: String, degrees: Double, length: Double, width: Double) -> SceneNode<ClockState> {
+        SceneGroup {
+            SceneLine(from: .zero, to: Vec2(length, 0))
                 .stroke(.black, lineWidth: width)
                 .hitTesting(.disabled)
 
-            circle(radius: Clock.handleRadius)
+            SceneCircle(radius: Clock.handleRadius)
                 .fill(.black)
                 .transform(.translate(length, 0))
-                .onDrag { context.d.vary(state, \.hours) }
+                .onDrag { context.drag.vary(state, \.hours) }
         }
         .id(id)
         .transform(.translate(Clock.center) + .rotate(degrees: degrees + Clock.topOfDial))
     }
 
-    return group {
-        circle(radius: Clock.faceRadius)
+    return SceneGroup {
+        SceneCircle(radius: Clock.faceRadius)
             .stroke(Ink.outline, lineWidth: Clock.minuteWidth)
             .transform(.translate(Clock.center))
 
@@ -200,28 +200,28 @@ enum LinkedSliders {
     static let originY = 30.0
 }
 
-func linkedSliders(_ context: RenderContext<LinkedSlidersState>) -> Node<LinkedSlidersState> {
+func linkedSliders(_ context: SceneContext<LinkedSlidersState>) -> SceneNode<LinkedSlidersState> {
     let state = context.state
     let height = LinkedSliders.trackHeight
 
-    return group {
+    return SceneGroup {
         for (index, value) in state.values.enumerated() {
-            group {
-                rect(width: LinkedSliders.width, height: height, cornerRadius: height / 2)
+            SceneGroup {
+                SceneRect(width: LinkedSliders.width, height: height, cornerRadius: height / 2)
                     .fill(Ink.faint)
                     .transform(.translate(0, -height / 2))
 
-                rect(width: value, height: height, cornerRadius: height / 2)
+                SceneRect(width: value, height: height, cornerRadius: height / 2)
                     .fill(Ink.blue)
                     .transform(.translate(0, -height / 2))
 
-                circle(radius: LinkedSliders.thumbRadius)
+                SceneCircle(radius: LinkedSliders.thumbRadius)
                     .fill(.white)
                     .stroke(Ink.outline)
                     .transform(.translate(value, 0))
                     .onDrag {
                         // One number moves this slider and all those below it.
-                        context.d.varyFunction(
+                        context.drag.varyFunction(
                             initial: [0],
                             state: { parameters in
                                 var copy = state
@@ -234,7 +234,7 @@ func linkedSliders(_ context: RenderContext<LinkedSlidersState>) -> Node<LinkedS
                             },
                             constraint: { candidate in
                                 candidate.values.flatMap {
-                                    Constraint.inOrder(0, $0, LinkedSliders.width)
+                                    DragConstraint.inOrder(0, $0, LinkedSliders.width)
                                 }
                             }
                         )
@@ -262,24 +262,24 @@ private enum Mirror {
     static let lineWidth = 2.0
 }
 
-func mirror(_ context: RenderContext<MirrorState>) -> Node<MirrorState> {
+func mirror(_ context: SceneContext<MirrorState>) -> SceneNode<MirrorState> {
     let state = context.state
     let reach = Mirror.radius + Mirror.axisOverhang
 
-    return group {
-        circle(radius: Mirror.radius).stroke(Ink.outline, lineWidth: Mirror.lineWidth)
+    return SceneGroup {
+        SceneCircle(radius: Mirror.radius).stroke(Ink.outline, lineWidth: Mirror.lineWidth)
 
-        line(from: Vec2(-reach, 0), to: Vec2(reach, 0))
+        SceneLine(from: Vec2(-reach, 0), to: Vec2(reach, 0))
             .stroke(Ink.faint)
             .hitTesting(.disabled)
 
-        group {
-            circle(radius: Mirror.handleRadius)
+        SceneGroup {
+            SceneCircle(radius: Mirror.handleRadius)
                 .id("point")
                 .fill(.black)
                 .transform(.translate(Mirror.radius, 0))
                 .onDrag {
-                    context.d
+                    context.drag
                         .vary(state, \.angle)
                         .changeFrame { frame in
                             // Flip the finger upside down, across the center.
@@ -352,18 +352,18 @@ enum Scheduler {
     }
 }
 
-func scheduler(_ context: RenderContext<SchedulerState>) -> Node<SchedulerState> {
+func scheduler(_ context: SceneContext<SchedulerState>) -> SceneNode<SchedulerState> {
     let state = context.state
 
-    return group {
+    return SceneGroup {
         for room in 0..<Scheduler.rooms {
             let y = Scheduler.trackY(room)
 
-            line(from: Vec2(0, y), to: Vec2(Scheduler.endTime, y))
+            SceneLine(from: Vec2(0, y), to: Vec2(Scheduler.endTime, y))
                 .stroke(Ink.outline)
                 .hitTesting(.disabled)
 
-            label("room \(room)", size: Scheduler.labelSize)
+            SceneText("room \(room)", size: Scheduler.labelSize)
                 .fill(Ink.muted)
                 .transform(.translate(Scheduler.endTime - Scheduler.labelInset, y + Scheduler.labelOffset))
                 .hitTesting(.disabled)
@@ -384,19 +384,19 @@ func scheduler(_ context: RenderContext<SchedulerState>) -> Node<SchedulerState>
     .transform(.translate(Scheduler.margin, Scheduler.margin))
 }
 
-private func conflictEdge(_ first: Int, _ second: Int, state: SchedulerState) -> Node<SchedulerState> {
+private func conflictEdge(_ first: Int, _ second: Int, state: SchedulerState) -> SceneNode<SchedulerState> {
     let a = state.meetings[first]
     let b = state.meetings[second]
     let start = Scheduler.nodePosition(a)
     let end = Scheduler.nodePosition(b)
     let isConflict = a.room == b.room
 
-    return group {
-        line(from: start, to: end)
+    return SceneGroup {
+        SceneLine(from: start, to: end)
             .stroke(Ink.red.withOpacity(isConflict ? Scheduler.conflictOpacity : 0), lineWidth: Scheduler.conflictWidth)
             .hitTesting(.disabled)
 
-        line(from: start, to: end)
+        SceneLine(from: start, to: end)
             .stroke(Ink.muted)
             .hitTesting(.disabled)
     }
@@ -404,9 +404,9 @@ private func conflictEdge(_ first: Int, _ second: Int, state: SchedulerState) ->
     .zIndex(.relative(-1))
 }
 
-private func meetingNode(_ index: Int, context: RenderContext<SchedulerState>) -> Node<SchedulerState> {
+private func meetingNode(_ index: Int, context: SceneContext<SchedulerState>) -> SceneNode<SchedulerState> {
     let state = context.state
-    let d = context.d
+    let d = context.drag
     let meeting = state.meetings[index]
     let y = Scheduler.trackY(meeting.room)
     let color = Ink.series[index % Ink.series.count]
@@ -426,31 +426,31 @@ private func meetingNode(_ index: Int, context: RenderContext<SchedulerState>) -
     let constraint = { (candidate: SchedulerState) -> [Double] in
         let current = candidate.meetings[index]
 
-        return Constraint.lessThan(0, current.start)
-            + Constraint.lessThan(current.start, current.end - Scheduler.minLength)
-            + Constraint.lessThan(current.end, Scheduler.endTime)
+        return DragConstraint.lessThan(0, current.start)
+            + DragConstraint.lessThan(current.start, current.end - Scheduler.minLength)
+            + DragConstraint.lessThan(current.end, Scheduler.endTime)
     }
 
-    return group {
-        rect(width: meeting.end - meeting.start, height: Scheduler.barHeight, cornerRadius: Scheduler.barHeight / 2)
+    return SceneGroup {
+        SceneRect(width: meeting.end - meeting.start, height: Scheduler.barHeight, cornerRadius: Scheduler.barHeight / 2)
             .id(barID)
             .fill(color)
             .transform(.translate(meeting.start, y - Scheduler.barHeight / 2))
             .onDrag(changeRoom)
 
-        circle(radius: Scheduler.dotRadius)
+        SceneCircle(radius: Scheduler.dotRadius)
             .id("left-\(index)")
             .fill(color)
             .transform(.translate(meeting.start + Scheduler.dotRadius, y))
             .onDrag { d.vary(state, \.meetings[index].start, constraint: constraint) }
 
-        circle(radius: Scheduler.dotRadius)
+        SceneCircle(radius: Scheduler.dotRadius)
             .id("right-\(index)")
             .fill(color)
             .transform(.translate(meeting.end - Scheduler.dotRadius, y))
             .onDrag { d.vary(state, \.meetings[index].end, constraint: constraint) }
 
-        circle(radius: Scheduler.nodeRadius)
+        SceneCircle(radius: Scheduler.nodeRadius)
             .fill(color)
             .stroke(.white, lineWidth: 2)
             .transform(.translate(node))
@@ -506,12 +506,12 @@ private func enforcingLinks(_ state: ChainState, from dragged: Int) -> ChainStat
     return ChainState(dots: dots)
 }
 
-func chainOfLinks(_ context: RenderContext<ChainState>) -> Node<ChainState> {
+func chainOfLinks(_ context: SceneContext<ChainState>) -> SceneNode<ChainState> {
     let state = context.state
 
-    return group {
+    return SceneGroup {
         for (index, pair) in zip(state.dots, state.dots.dropFirst()).enumerated() {
-            line(from: pair.0, to: pair.1)
+            SceneLine(from: pair.0, to: pair.1)
                 .id("link-\(index)")
                 .stroke(Ink.muted, lineWidth: ChainLinks.lineWidth)
                 .hitTesting(.disabled)
@@ -520,7 +520,7 @@ func chainOfLinks(_ context: RenderContext<ChainState>) -> Node<ChainState> {
         for (index, dot) in state.dots.enumerated() {
             let id = "dot-\(index)"
 
-            circle(radius: ChainLinks.dotRadius)
+            SceneCircle(radius: ChainLinks.dotRadius)
                 .id(id)
                 .fill(Ink.text)
                 .transform(.translate(dot))
@@ -528,7 +528,7 @@ func chainOfLinks(_ context: RenderContext<ChainState>) -> Node<ChainState> {
                 .onDrag {
                     // Chaining feeds each frame's result into the next, so
                     // the chain trails behind instead of starting afresh.
-                    context.d
+                    context.drag
                         .vary(state, \.dots[index].x, \.dots[index].y)
                         .during { enforcingLinks($0, from: index) }
                         .withChaining(transition: nil)
@@ -648,11 +648,11 @@ func recomputedPiles(_ state: PilesState) -> PilesState {
     return result
 }
 
-func cardPiles(_ context: RenderContext<PilesState>) -> Node<PilesState> {
+func cardPiles(_ context: SceneContext<PilesState>) -> SceneNode<PilesState> {
     let state = context.state
     let piles = state.piles.sorted { $0.key < $1.key }
 
-    return group {
+    return SceneGroup {
         for (pileID, pile) in piles where pile.cards.count > 1 {
             pileBackground(pileID, pile, context: context)
         }
@@ -661,14 +661,14 @@ func cardPiles(_ context: RenderContext<PilesState>) -> Node<PilesState> {
             for (cardID, card) in pile.cards.sorted(by: { $0.key < $1.key }) {
                 let id = "card-\(cardID)"
 
-                rect(width: Piles.cardWidth, height: Piles.cardHeight, cornerRadius: Piles.cornerRadius)
+                SceneRect(width: Piles.cardWidth, height: Piles.cardHeight, cornerRadius: Piles.cornerRadius)
                     .id(id)
                     .fill(.white)
                     .stroke(Ink.muted, lineWidth: Piles.lineWidth)
                     .transform(.translate(pile.x + card.dx, pile.y + card.dy))
                     .zIndex(.relative(context.draggedID == id ? Piles.draggedCardZ : Piles.cardZ))
                     .onDrag {
-                        context.d
+                        context.drag
                             .vary(state, \.piles[pileID]!.cards[cardID]!.dx, \.piles[pileID]!.cards[cardID]!.dy)
                             .during(recomputedPiles)
                     }
@@ -680,8 +680,8 @@ func cardPiles(_ context: RenderContext<PilesState>) -> Node<PilesState> {
 private func pileBackground(
     _ pileID: String,
     _ pile: Pile,
-    context: RenderContext<PilesState>
-) -> Node<PilesState> {
+    context: SceneContext<PilesState>
+) -> SceneNode<PilesState> {
     let state = context.state
     let id = "pile-\(pileID)"
     let padding = Piles.pilePadding
@@ -691,13 +691,13 @@ private func pileBackground(
     let maxX = (positions.map(\.x).max() ?? 0) + Piles.cardWidth + padding
     let maxY = (positions.map(\.y).max() ?? 0) + Piles.cardHeight + padding
 
-    return rect(width: maxX - minX, height: maxY - minY, cornerRadius: Piles.pileCornerRadius)
+    return SceneRect(width: maxX - minX, height: maxY - minY, cornerRadius: Piles.pileCornerRadius)
         .id(id)
         .fill(Ink.outline)
         .opacity(context.draggedID == id ? Piles.draggedPileOpacity : Piles.pileOpacity)
         .transform(.translate(minX, minY))
         .onDrag {
-            context.d
+            context.drag
                 .vary(state, \.piles[pileID]!.x, \.piles[pileID]!.y)
                 .during(recomputedPiles)
         }

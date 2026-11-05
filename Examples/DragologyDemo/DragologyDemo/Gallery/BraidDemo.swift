@@ -72,24 +72,24 @@ private enum Metrics {
     static let betaOffset = -30.0
     static let labelSize = 11.0
 
-    static let ink = RGBA(hex: 0x1F2937)
-    static let label = RGBA(hex: 0x6B7280)
-    static let handle = RGBA(hex: 0xDC2626)
-    static let crossing = RGBA(hex: 0x2563EB)
-    static let stuck = RGBA(hex: 0x9CA3AF)
-    static let panelFill = RGBA(hex: 0xF8FAFC)
-    static let panelFullFill = RGBA(hex: 0xFFF7ED)
-    static let panelFullStroke = RGBA(hex: 0xFB923C)
-    static let panelFullText = RGBA(hex: 0xC2410C)
-    static let gridLine = RGBA(hex: 0xE2E8F0)
+    static let ink = SceneColor(hex: 0x1F2937)
+    static let label = SceneColor(hex: 0x6B7280)
+    static let handle = SceneColor(hex: 0xDC2626)
+    static let crossing = SceneColor(hex: 0x2563EB)
+    static let stuck = SceneColor(hex: 0x9CA3AF)
+    static let panelFill = SceneColor(hex: 0xF8FAFC)
+    static let panelFullFill = SceneColor(hex: 0xFFF7ED)
+    static let panelFullStroke = SceneColor(hex: 0xFB923C)
+    static let panelFullText = SceneColor(hex: 0xC2410C)
+    static let gridLine = SceneColor(hex: 0xE2E8F0)
 
-    static let colors: [(fill: RGBA, stroke: RGBA)] = [
-        (RGBA(hex: 0xFECACA), RGBA(hex: 0xDC2626)),
-        (RGBA(hex: 0xFDE68A), RGBA(hex: 0xD97706)),
-        (RGBA(hex: 0xBBF7D0), RGBA(hex: 0x16A34A)),
-        (RGBA(hex: 0xBFDBFE), RGBA(hex: 0x2563EB)),
-        (RGBA(hex: 0xDDD6FE), RGBA(hex: 0x7C3AED)),
-        (RGBA(hex: 0xFBCFE8), RGBA(hex: 0xDB2777)),
+    static let colors: [(fill: SceneColor, stroke: SceneColor)] = [
+        (SceneColor(hex: 0xFECACA), SceneColor(hex: 0xDC2626)),
+        (SceneColor(hex: 0xFDE68A), SceneColor(hex: 0xD97706)),
+        (SceneColor(hex: 0xBBF7D0), SceneColor(hex: 0x16A34A)),
+        (SceneColor(hex: 0xBFDBFE), SceneColor(hex: 0x2563EB)),
+        (SceneColor(hex: 0xDDD6FE), SceneColor(hex: 0x7C3AED)),
+        (SceneColor(hex: 0xFBCFE8), SceneColor(hex: 0xDB2777)),
     ]
 }
 
@@ -101,7 +101,7 @@ private let crossSamples: [(along: Double, across: Double)] = (0...Metrics.cross
     return (1.5 * s * (1 - s) + s * s * s, 3 * s * s - 2 * s * s * s)
 }
 
-func braid(_ context: RenderContext<BraidState>) -> Node<BraidState> {
+func braid(_ context: SceneContext<BraidState>) -> SceneNode<BraidState> {
     BraidRenderer(context).scene()
 }
 
@@ -175,7 +175,7 @@ private struct WirePiece {
 
 /// Lays out and draws one state.
 private struct BraidRenderer {
-    let context: RenderContext<BraidState>
+    let context: SceneContext<BraidState>
     let d: DragSpecBuilder<BraidState>
     let raw: BraidState
     let n: Int
@@ -198,9 +198,9 @@ private struct BraidRenderer {
 
     private let wireStart = 0.0
 
-    init(_ context: RenderContext<BraidState>) {
+    init(_ context: SceneContext<BraidState>) {
         self.context = context
-        d = context.d
+        d = context.drag
 
         // Past halfway, a conjugation is drawn as the word with the
         // crossing moved to the front, coming in from behind.
@@ -650,7 +650,7 @@ private struct BraidRenderer {
         return [.move(points[0])] + Self.polyline(Array(points.dropFirst()))
     }
 
-    private func strandColor(_ strand: Int) -> (fill: RGBA, stroke: RGBA) {
+    private func strandColor(_ strand: Int) -> (fill: SceneColor, stroke: SceneColor) {
         let index = palette.map { $0[strand - 1] } ?? (strand - 1)
         return Metrics.colors[index % Metrics.colors.count]
     }
@@ -762,7 +762,7 @@ private struct BraidRenderer {
 
         return d
             .vary(turning, \.word[index].p, constraint: { candidate in
-                Constraint.inOrder(0, candidate.word[index].p, 1)
+                DragConstraint.inOrder(0, candidate.word[index].p, 1)
             })
             .onDrop { $0.word[index].p > Metrics.halfTurn ? done : cleaned }
             .withSnapRadius(Metrics.snapDistance, chaining: .chainOnSnap)
@@ -803,7 +803,7 @@ private struct BraidRenderer {
 
         return d
             .vary(start, \.orbit!.t, constraint: { candidate in
-                Constraint.inOrder(0, candidate.orbit?.t ?? 0, 1)
+                DragConstraint.inOrder(0, candidate.orbit?.t ?? 0, 1)
             })
             .onDrop { dropped in
                 var result = dropped
@@ -960,14 +960,14 @@ private struct BraidRenderer {
 
     // MARK: Drawing
 
-    func scene() -> Node<BraidState> {
+    func scene() -> SceneNode<BraidState> {
         let disp = displacement
         let strands = (1...max(n, 1)).map { strand in
             (strand: strand, wire: wirePieces(strand, disp))
         }
 
         let laidOut = laidOutColumns
-        var diagram: [Node<BraidState>] = []
+        var diagram: [SceneNode<BraidState>] = []
 
         if isClosure {
             diagram.append(closureBox())
@@ -995,33 +995,33 @@ private struct BraidRenderer {
             diagram += [curlHandle(isAtEnd: true), curlHandle(isAtEnd: false), innerLoopHandle()]
         }
 
-        return Node(children: [
-            Node(children: diagram).transform(.translate(origin)),
+        return SceneNode(children: [
+            SceneNode(children: diagram).transform(.translate(origin)),
             wordRow(laidOut, disp),
-            Node(children: panel(disp)).transform(.translate(origin)),
+            SceneNode(children: panel(disp)).transform(.translate(origin)),
         ])
     }
 
-    private func closureBox() -> Node<BraidState> {
+    private func closureBox() -> SceneNode<BraidState> {
         let top = rowY(0) - Metrics.boxTopShare * Metrics.rowSpacing
         let height = rowY(lastRow) - rowY(0) + Metrics.boxHeightShare * Metrics.rowSpacing
 
-        return rect(width: wireEnd - wireStart, height: height, cornerRadius: Metrics.boxCornerRadius)
+        return SceneRect(width: wireEnd - wireStart, height: height, cornerRadius: Metrics.boxCornerRadius)
             .stroke(Ink.outline)
             .transform(.translate(wireStart, top))
     }
 
-    private func strandLabels(_ disp: Displacement?) -> [Node<BraidState>] {
+    private func strandLabels(_ disp: Displacement?) -> [SceneNode<BraidState>] {
         let ends = endConfiguration(disp)
 
-        return (1...max(n, 1)).flatMap { strand -> [Node<BraidState>] in
+        return (1...max(n, 1)).flatMap { strand -> [SceneNode<BraidState>] in
             [
-                label(String(strand), size: Metrics.labelSize)
+                SceneText(String(strand), size: Metrics.labelSize)
                     .fill(Metrics.label)
                     .transform(.translate(wireStart - Metrics.labelOffset, rowY(strand - 1)))
                     .hitTesting(.disabled),
 
-                label(String(strand), size: Metrics.labelSize)
+                SceneText(String(strand), size: Metrics.labelSize)
                     .id("wire-end-\(strand)")
                     .fill(Metrics.colors[(strand - 1) % Metrics.colors.count].stroke)
                     .transform(.translate(wireEnd + Metrics.labelOffset, rowY(ends[strand]?.row ?? 0)))
@@ -1030,16 +1030,16 @@ private struct BraidRenderer {
         }
     }
 
-    private func wireNodes(_ strand: Int, _ pieces: [WirePiece]) -> [Node<BraidState>] {
-        pieces.flatMap { piece -> [Node<BraidState>] in
+    private func wireNodes(_ strand: Int, _ pieces: [WirePiece]) -> [SceneNode<BraidState>] {
+        pieces.flatMap { piece -> [SceneNode<BraidState>] in
             [
-                path(piece.commands)
+                ScenePath(piece.commands)
                     .id("wire-\(strand)-\(piece.key)-halo")
                     .stroke(.white, lineWidth: Metrics.halo)
                     .zIndex(.relative(2 * piece.z))
                     .opacity(strandOpacity(strand)),
 
-                path(piece.commands)
+                ScenePath(piece.commands)
                     .id("wire-\(strand)-\(piece.key)")
                     .stroke(strandColor(strand).stroke, lineWidth: Metrics.stroke)
                     .zIndex(.relative(2 * piece.z + 1))
@@ -1048,17 +1048,17 @@ private struct BraidRenderer {
         }
     }
 
-    private func loopNodes(_ strand: Int, endRow: Double, _ disp: Displacement?) -> [Node<BraidState>] {
+    private func loopNodes(_ strand: Int, endRow: Double, _ disp: Displacement?) -> [SceneNode<BraidState>] {
         let row = Int(endRow.rounded())
         let commands = loopPath(row: endRow, disp)
 
         return [
-            path(commands)
+            ScenePath(commands)
                 .id("loop-\(row)-halo")
                 .stroke(.white, lineWidth: Metrics.halo)
                 .opacity(strandOpacity(strand)),
 
-            path(commands)
+            ScenePath(commands)
                 .id("loop-\(row)")
                 .stroke(strandColor(strand).stroke, lineWidth: Metrics.stroke)
                 .zIndex(.relative(1))
@@ -1066,7 +1066,7 @@ private struct BraidRenderer {
         ]
     }
 
-    private func crossingHandle(_ laidOut: LaidOutColumn, _ disp: Displacement?) -> Node<BraidState> {
+    private func crossingHandle(_ laidOut: LaidOutColumn, _ disp: Displacement?) -> SceneNode<BraidState> {
         let isDisplaced = disp?.layoutIndex == laidOut.layoutIndex
         let base = "cross-\(laidOut.handleID)"
         let id: String
@@ -1089,8 +1089,8 @@ private struct BraidRenderer {
         let cleaned = state
         let builder = d
 
-        return group {
-            circle(radius: radius)
+        return SceneGroup {
+            SceneCircle(radius: radius)
                 .fill(spec == nil ? Metrics.stuck : Metrics.crossing)
                 .opacity(context.draggedID == id ? Metrics.activeHandleOpacity : 0)
         }
@@ -1100,14 +1100,14 @@ private struct BraidRenderer {
         .onDrag { spec ?? builder.fixed(cleaned) }
     }
 
-    private func strandHandleGroup(_ strand: Int, _ disp: Displacement?) -> Node<BraidState> {
-        let handles = strandHandles(strand).map { handle -> Node<BraidState> in
+    private func strandHandleGroup(_ strand: Int, _ disp: Displacement?) -> SceneNode<BraidState> {
+        let handles = strandHandles(strand).map { handle -> SceneNode<BraidState> in
             let id = "strand-\(strand)-\(handle.index)"
-            let position = Transform.translate(edgeX(handle.index, disp), rowY(handle.row))
+            let position = SceneTransform.translate(edgeX(handle.index, disp), rowY(handle.row))
 
             switch handle {
             case .blank:
-                return Node<BraidState>().id(id).transform(position)
+                return SceneNode<BraidState>().id(id).transform(position)
 
             case .apex(let index, _):
                 return apexHandle(id: id, at: position, index: index)
@@ -1117,18 +1117,18 @@ private struct BraidRenderer {
             }
         }
 
-        return Node(children: handles).key("strand-handles-\(strand)")
+        return SceneNode(children: handles).key("strand-handles-\(strand)")
     }
 
-    private func apexHandle(id: String, at position: Transform, index: Int) -> Node<BraidState> {
+    private func apexHandle(id: String, at position: SceneTransform, index: Int) -> SceneNode<BraidState> {
         let side = Metrics.rowSpacing * 2 * Metrics.apexShare
         let half = side / 2
         let current = state
         let cancelled = gapped(at: index)
         let builder = d
 
-        return group {
-            rect(width: side, height: side, cornerRadius: Metrics.boxCornerRadius)
+        return SceneGroup {
+            SceneRect(width: side, height: side, cornerRadius: Metrics.boxCornerRadius)
                 .fill(Metrics.handle)
                 .opacity(context.draggedID == id ? Metrics.activeHandleOpacity : 0)
                 .transform(.translate(-half, -half))
@@ -1141,16 +1141,16 @@ private struct BraidRenderer {
 
     private func straightHandle(
         id: String,
-        at position: Transform,
+        at position: SceneTransform,
         index: Int,
         row: Int,
         side: StrandHandle.BraidSide?
-    ) -> Node<BraidState> {
+    ) -> SceneNode<BraidState> {
         let renderer = self
         let height = Metrics.rowSpacing * 2 * Metrics.handleRowShare
 
-        return group {
-            rect(width: columnWidth, height: height, cornerRadius: Metrics.boxCornerRadius)
+        return SceneGroup {
+            SceneRect(width: columnWidth, height: height, cornerRadius: Metrics.boxCornerRadius)
                 .fill(Metrics.handle)
                 .opacity(context.draggedID == id ? Metrics.activeHandleOpacity : 0)
                 .transform(.translate(-columnWidth, -height / 2))
@@ -1161,14 +1161,14 @@ private struct BraidRenderer {
         .onDrag { renderer.straightSpec(index: index, row: row, braidSide: side) }
     }
 
-    private func curlHandle(isAtEnd: Bool) -> Node<BraidState> {
+    private func curlHandle(isAtEnd: Bool) -> SceneNode<BraidState> {
         let id = isAtEnd ? "curl-right" : "curl-left"
         let left = isAtEnd ? -columnWidth : -Metrics.stub
         let right = isAtEnd ? Metrics.stub : 4
         let height = Metrics.rowSpacing * 2 * Metrics.handleRowShare
 
-        let handle: Node<BraidState> = group {
-            rect(width: right - left, height: height, cornerRadius: Metrics.boxCornerRadius)
+        let handle: SceneNode<BraidState> = SceneGroup {
+            SceneRect(width: right - left, height: height, cornerRadius: Metrics.boxCornerRadius)
                 .fill(Metrics.handle)
                 .opacity(context.draggedID == id ? Metrics.activeHandleOpacity : 0)
                 .transform(.translate(left, -height / 2))
@@ -1183,14 +1183,14 @@ private struct BraidRenderer {
         return handle.onDrag { spec }
     }
 
-    private func innerLoopHandle() -> Node<BraidState> {
+    private func innerLoopHandle() -> SceneNode<BraidState> {
         let id = "inner-loop"
         let left = wireStart - Metrics.stub + Metrics.bottomCornerRadius
         let right = wireEnd + Metrics.stub - Metrics.bottomCornerRadius
         let height = Metrics.rowSpacing * 2 * Metrics.handleRowShare
 
-        let handle: Node<BraidState> = group {
-            rect(width: right - left, height: height, cornerRadius: Metrics.boxCornerRadius)
+        let handle: SceneNode<BraidState> = SceneGroup {
+            SceneRect(width: right - left, height: height, cornerRadius: Metrics.boxCornerRadius)
                 .fill(Metrics.handle)
                 .opacity(context.draggedID == id ? Metrics.activeHandleOpacity : 0)
                 .transform(.translate(-(right - left) / 2, -height / 2))
@@ -1208,12 +1208,12 @@ private struct BraidRenderer {
 
     /// One letter under each crossing, or over it in the closure, whose
     /// loops are underneath, so letters travel with their crossings.
-    private func wordRow(_ laidOut: [LaidOutColumn], _ disp: Displacement?) -> Node<BraidState> {
+    private func wordRow(_ laidOut: [LaidOutColumn], _ disp: Displacement?) -> SceneNode<BraidState> {
         let y = isClosure ? -Metrics.wordOffset : rowY(lastRow) + Metrics.wordOffset
         let pending = laidOut.first { $0.column.isPending }
 
-        var parts: [Node<BraidState>] = [
-            label("β", size: Metrics.glyphSize)
+        var parts: [SceneNode<BraidState>] = [
+            SceneText("β", size: Metrics.glyphSize)
                 .fill(Metrics.ink)
                 .transform(.translate(Metrics.betaOffset, 0))
                 .hitTesting(.disabled),
@@ -1221,7 +1221,7 @@ private struct BraidRenderer {
 
         if length == 0, pending == nil {
             parts.append(
-                label("e", size: Metrics.glyphSize)
+                SceneText("e", size: Metrics.glyphSize)
                     .fill(Metrics.stuck)
                     .transform(.translate(columnWidth / 2, 0))
                     .hitTesting(.disabled)
@@ -1238,10 +1238,10 @@ private struct BraidRenderer {
             parts.append(glyph(pending, x: center, opacity: pending.column.p))
         }
 
-        return Node(children: parts).transform(.translate(origin + Vec2(0, y)))
+        return SceneNode(children: parts).transform(.translate(origin + Vec2(0, y)))
     }
 
-    private func letterForColumn(_ item: LaidOutColumn, _ disp: Displacement?) -> Node<BraidState> {
+    private func letterForColumn(_ item: LaidOutColumn, _ disp: Displacement?) -> SceneNode<BraidState> {
         let column = item.column
 
         guard let disp, disp.layoutIndex == item.layoutIndex else {
@@ -1259,21 +1259,21 @@ private struct BraidRenderer {
     }
 
     /// σ with its index as a subscript, and −1 above that for an inverse.
-    private func glyph(_ item: LaidOutColumn, x: Double, opacity: Double) -> Node<BraidState> {
+    private func glyph(_ item: LaidOutColumn, x: Double, opacity: Double) -> SceneNode<BraidState> {
         let isInverse = item.column.sign == .negative
         let shift = isInverse ? Metrics.inverseGlyphShift : Metrics.glyphShift
 
-        return group {
-            label("σ", size: Metrics.glyphSize)
+        return SceneGroup {
+            SceneText("σ", size: Metrics.glyphSize)
                 .fill(Metrics.ink)
                 .hitTesting(.disabled)
 
-            label(String(item.column.i + 1), size: Metrics.scriptSize)
+            SceneText(String(item.column.i + 1), size: Metrics.scriptSize)
                 .fill(Metrics.ink)
                 .transform(.translate(Metrics.subscriptOffset))
                 .hitTesting(.disabled)
 
-            label("−1", size: Metrics.scriptSize)
+            SceneText("−1", size: Metrics.scriptSize)
                 .fill(Metrics.ink)
                 .opacity(isInverse ? 1 : 0)
                 .transform(.translate(Metrics.superscriptOffset))
@@ -1286,7 +1286,7 @@ private struct BraidRenderer {
 
     // MARK: The panel
 
-    private func panel(_ disp: Displacement?) -> [Node<BraidState>] {
+    private func panel(_ disp: Displacement?) -> [SceneNode<BraidState>] {
         let overhang = Metrics.panelRowOverhang * Metrics.rowSpacing
         let top = rowY(0) - overhang
         let bottom = rowY(lastRow) + overhang
@@ -1302,13 +1302,13 @@ private struct BraidRenderer {
         let outline = [PathCommand.move(corners[0])] + corners.dropFirst().map(PathCommand.line) + [.close]
         let isFull = isFull
 
-        var parts: [Node<BraidState>] = [
-            path(outline)
+        var parts: [SceneNode<BraidState>] = [
+            ScenePath(outline)
                 .fill(isFull ? Metrics.panelFullFill : Metrics.panelFill)
                 .stroke(isFull ? Metrics.panelFullStroke : Ink.outline)
                 .hitTesting(.disabled),
 
-            label("Braid is full", size: Metrics.labelSize)
+            SceneText("Braid is full", size: Metrics.labelSize)
                 .fill(Metrics.panelFullText)
                 .opacity(isFull ? 1 : 0)
                 .transform(.translate(
@@ -1320,7 +1320,7 @@ private struct BraidRenderer {
 
         for row in 0..<n {
             parts.append(
-                line(from: project(rowY(row), depth: depth).position, to: project(rowY(row), depth: -depth).position)
+                SceneLine(from: project(rowY(row), depth: depth).position, to: project(rowY(row), depth: -depth).position)
                     .key("grid-\(row)")
                     .stroke(Metrics.gridLine)
                     .opacity(strandOpacity(row + 1))
@@ -1329,7 +1329,7 @@ private struct BraidRenderer {
         }
 
         parts.append(
-            line(from: project(top, depth: 0).position, to: project(bottom, depth: 0).position)
+            SceneLine(from: project(top, depth: 0).position, to: project(bottom, depth: 0).position)
                 .stroke(Ink.outline)
                 .hitTesting(.disabled)
         )
@@ -1345,19 +1345,19 @@ private struct BraidRenderer {
 
     /// Drag a point around a neighbor, in front or behind, to add that
     /// crossing.
-    private func pointNode(_ strand: Int, _ end: (row: Double, depth: Double)) -> Node<BraidState> {
+    private func pointNode(_ strand: Int, _ end: (row: Double, depth: Double)) -> SceneNode<BraidState> {
         let id = "pt-\(strand)"
         let isDragged = context.draggedID == id
         let projected = project(rowY(end.row), depth: end.depth)
         let color = strandColor(strand)
         let renderer = self
 
-        return group {
-            circle(radius: Metrics.pointHaloRadius * projected.scale)
+        return SceneGroup {
+            SceneCircle(radius: Metrics.pointHaloRadius * projected.scale)
                 .fill(color.fill)
                 .opacity(isDragged ? Metrics.pointHaloOpacity : 0)
 
-            circle(radius: Metrics.pointRadius * projected.scale)
+            SceneCircle(radius: Metrics.pointRadius * projected.scale)
                 .fill(color.stroke)
                 .stroke(.white, lineWidth: Metrics.pointStroke)
         }

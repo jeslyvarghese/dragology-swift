@@ -103,41 +103,41 @@ private enum Metrics {
     static let cornerRadius = 4.0
     static let endHitOpacity = 0.6
 
-    static let hexFace = RGBA(hex: 0xD6E0EF)
-    static let squareFace = RGBA(hex: 0xF5DEB3)
-    static let frontEdge = RGBA(hex: 0x475569)
-    static let backEdge = RGBA(hex: 0x64748B)
-    static let accent = RGBA(hex: 0x2563EB)
-    static let handle = RGBA(hex: 0xDC2626)
-    static let stuck = RGBA(hex: 0x9CA3AF)
-    static let label = RGBA(hex: 0x6B7280)
-    static let ink = RGBA(hex: 0x1F2937)
-    static let mutedFill = RGBA(hex: 0xF3F4F6)
-    static let mutedStroke = RGBA(hex: 0xD1D5DB)
+    static let hexFace = SceneColor(hex: 0xD6E0EF)
+    static let squareFace = SceneColor(hex: 0xF5DEB3)
+    static let frontEdge = SceneColor(hex: 0x475569)
+    static let backEdge = SceneColor(hex: 0x64748B)
+    static let accent = SceneColor(hex: 0x2563EB)
+    static let handle = SceneColor(hex: 0xDC2626)
+    static let stuck = SceneColor(hex: 0x9CA3AF)
+    static let label = SceneColor(hex: 0x6B7280)
+    static let ink = SceneColor(hex: 0x1F2937)
+    static let mutedFill = SceneColor(hex: 0xF3F4F6)
+    static let mutedStroke = SceneColor(hex: 0xD1D5DB)
 
-    static let colors: [(fill: RGBA, stroke: RGBA)] = [
-        (RGBA(hex: 0xFECACA), RGBA(hex: 0xDC2626)),
-        (RGBA(hex: 0xFDE68A), RGBA(hex: 0xD97706)),
-        (RGBA(hex: 0xBBF7D0), RGBA(hex: 0x16A34A)),
-        (RGBA(hex: 0xBFDBFE), RGBA(hex: 0x2563EB)),
-        (RGBA(hex: 0xDDD6FE), RGBA(hex: 0x7C3AED)),
-        (RGBA(hex: 0xFBCFE8), RGBA(hex: 0xDB2777)),
+    static let colors: [(fill: SceneColor, stroke: SceneColor)] = [
+        (SceneColor(hex: 0xFECACA), SceneColor(hex: 0xDC2626)),
+        (SceneColor(hex: 0xFDE68A), SceneColor(hex: 0xD97706)),
+        (SceneColor(hex: 0xBBF7D0), SceneColor(hex: 0x16A34A)),
+        (SceneColor(hex: 0xBFDBFE), SceneColor(hex: 0x2563EB)),
+        (SceneColor(hex: 0xDDD6FE), SceneColor(hex: 0x7C3AED)),
+        (SceneColor(hex: 0xFBCFE8), SceneColor(hex: 0xDB2777)),
     ]
 
-    static func color(_ value: Int) -> (fill: RGBA, stroke: RGBA) {
+    static func color(_ value: Int) -> (fill: SceneColor, stroke: SceneColor) {
         colors[(value - 1) % colors.count]
     }
 }
 
-func permutationLab(_ context: RenderContext<PermState>) -> Node<PermState> {
+func permutationLab(_ context: SceneContext<PermState>) -> SceneNode<PermState> {
     PermRenderer(context).scene()
 }
 
-private extension RGBA {
-    func shaded(by factor: Double) -> RGBA {
+private extension SceneColor {
+    func shaded(by factor: Double) -> SceneColor {
         let clamp = { (value: Double) in min(max(value * factor, 0), 1) }
 
-        return RGBA(red: clamp(red), green: clamp(green), blue: clamp(blue), alpha: alpha)
+        return SceneColor(red: clamp(red), green: clamp(green), blue: clamp(blue), alpha: alpha)
     }
 }
 
@@ -147,10 +147,10 @@ private func subscriptDigit(_ value: Int) -> String {
 }
 
 /// A filled triangle with its tip at `tip`, pointing along `direction`.
-private func arrowHead(tip: Vec2, direction: Vec2, length: Double, fill: RGBA) -> Node<PermState> {
+private func arrowHead(tip: Vec2, direction: Vec2, length: Double, fill: SceneColor) -> SceneNode<PermState> {
     let halfWidth = length * tan(Metrics.arrowAngle / 2)
 
-    return path([
+    return ScenePath([
         .move(.zero),
         .line(Vec2(-length, halfWidth)),
         .line(Vec2(-length, -halfWidth)),
@@ -187,7 +187,7 @@ private struct WalkZ {
 
 /// Lays out and draws one state.
 private struct PermRenderer {
-    let context: RenderContext<PermState>
+    let context: SceneContext<PermState>
     let d: DragSpecBuilder<PermState>
     let raw: PermState
     let n: Int
@@ -201,9 +201,9 @@ private struct PermRenderer {
     let columnWidth: Double
     let wireEnd: Double
 
-    init(_ context: RenderContext<PermState>) {
+    init(_ context: SceneContext<PermState>) {
         self.context = context
-        d = context.d
+        d = context.drag
         raw = context.state
         n = raw.n
         columns = raw.word
@@ -420,7 +420,7 @@ private struct PermRenderer {
 
         return d
             .vary(start, \.view.spinX, \.view.spinY, constraint: { candidate in
-                Constraint.moreThan(solid.facing(candidate.view, face: index), minimum)
+                DragConstraint.moreThan(solid.facing(candidate.view, face: index), minimum)
             })
             .onDrop { dropped in
                 var result = dropped
@@ -433,13 +433,13 @@ private struct PermRenderer {
 
     private var showsSolid: Bool { n == 4 && raw.style == .solid }
 
-    func scene() -> Node<PermState> {
+    func scene() -> SceneNode<PermState> {
         let solid = showsSolid ? solidNode() : nil
 
         // Turning the solid only moves the solid, so that's all the
         // optimizer needs to see.
         if context.isTracking, context.draggedID?.hasPrefix("ph-face-") == true, let solid {
-            return Node(children: [solid])
+            return SceneNode(children: [solid])
         }
 
         var parts = headings()
@@ -456,31 +456,31 @@ private struct PermRenderer {
 
         parts.append(wiringNode())
 
-        return Node(children: parts)
+        return SceneNode(children: parts)
     }
 
-    private func smallLabel(_ text: String, at position: Vec2) -> Node<PermState> {
+    private func smallLabel(_ text: String, at position: Vec2) -> SceneNode<PermState> {
         // Labels are centered, so lead with their measured half width.
         let halfWidth = Double(text.count) * Metrics.labelSize * 0.3
 
-        return label(text.uppercased(), size: Metrics.labelSize)
+        return SceneText(text.uppercased(), size: Metrics.labelSize)
             .fill(Metrics.label)
             .transform(.translate(position + Vec2(halfWidth, 0)))
             .hitTesting(.disabled)
     }
 
-    private func heading(_ title: String, at position: Vec2, width: Double) -> Node<PermState> {
-        group {
+    private func heading(_ title: String, at position: Vec2, width: Double) -> SceneNode<PermState> {
+        SceneGroup {
             smallLabel(title, at: .zero)
 
-            line(from: Vec2(0, Metrics.headingRule), to: Vec2(width, Metrics.headingRule))
+            SceneLine(from: Vec2(0, Metrics.headingRule), to: Vec2(width, Metrics.headingRule))
                 .stroke(Ink.faint)
                 .hitTesting(.disabled)
         }
         .transform(.translate(position))
     }
 
-    private func headings() -> [Node<PermState>] {
+    private func headings() -> [SceneNode<PermState>] {
         var parts = [
             heading("the permutation π", at: Metrics.headingOrigin, width: Metrics.headingWidth),
             heading("a word for π", at: Vec2(Metrics.headingOrigin.x, Metrics.wordHeadingY), width: Metrics.headingWidth),
@@ -495,7 +495,7 @@ private struct PermRenderer {
 
     // MARK: Word
 
-    private func wordNode() -> Node<PermState> {
+    private func wordNode() -> SceneNode<PermState> {
         let letters = wordLetters
         let letterWidth = min(Metrics.maxLetterWidth, Metrics.letterArea / Double(max(word.count, 1)))
         let inversions = PermMath.inversions(permutation)
@@ -504,14 +504,14 @@ private struct PermRenderer {
         let info = "length \(length) · inversions \(inversions) · \(verdict)"
         let infoHalfWidth = Double(info.count) * Metrics.infoFontSize * 0.26
 
-        var parts: [Node<PermState>] = [
-            label("π =", size: Metrics.wordFontSize)
+        var parts: [SceneNode<PermState>] = [
+            SceneText("π =", size: Metrics.wordFontSize)
                 .id("word-pi")
                 .fill(Metrics.ink)
                 .transform(.translate(Metrics.wordOrigin + Vec2(Metrics.wordFontSize / 2 + 4, 0)))
                 .hitTesting(.disabled),
 
-            label(info, size: Metrics.infoFontSize)
+            SceneText(info, size: Metrics.infoFontSize)
                 .fill(Metrics.ink)
                 .transform(.translate(Metrics.wordOrigin.x + infoHalfWidth, Metrics.infoY))
                 .hitTesting(.disabled),
@@ -519,7 +519,7 @@ private struct PermRenderer {
 
         if length == 0 {
             parts.append(
-                label("e", size: Metrics.wordFontSize)
+                SceneText("e", size: Metrics.wordFontSize)
                     .fill(Metrics.stuck)
                     .transform(.translate(Metrics.wordOrigin + Vec2(Metrics.letterSlotStart + 8, 0)))
                     .hitTesting(.disabled)
@@ -533,12 +533,12 @@ private struct PermRenderer {
         }
 
         for slot in 0..<capacity {
-            parts.append(Node<PermState>().id("word-slot-\(slot)").transform(.translate(slotPosition(slot))))
+            parts.append(SceneNode<PermState>().id("word-slot-\(slot)").transform(.translate(slotPosition(slot))))
         }
 
         for letter in letters {
             parts.append(
-                label("s" + subscriptDigit(letter.generator + 1), size: Metrics.wordFontSize)
+                SceneText("s" + subscriptDigit(letter.generator + 1), size: Metrics.wordFontSize)
                     .id("word-letter-\(letter.pairID)")
                     .fill(Metrics.ink)
                     .transform(.translate(slotPosition(letter.wordIndex)))
@@ -547,26 +547,26 @@ private struct PermRenderer {
             )
         }
 
-        return Node(children: parts)
+        return SceneNode(children: parts)
     }
 
     // MARK: Two-line notation
 
-    private func tileContents(_ value: Int, isMuted: Bool) -> Node<PermState> {
+    private func tileContents(_ value: Int, isMuted: Bool) -> SceneNode<PermState> {
         let color = Metrics.color(value)
 
-        return group {
-            rect(width: Metrics.tile, height: Metrics.tile, cornerRadius: Metrics.tileCorner)
+        return SceneGroup {
+            SceneRect(width: Metrics.tile, height: Metrics.tile, cornerRadius: Metrics.tileCorner)
                 .fill(isMuted ? Metrics.mutedFill : color.fill)
                 .stroke(isMuted ? Metrics.mutedStroke : color.stroke, lineWidth: Metrics.lineWidth)
 
-            label(String(value), size: Metrics.tileFontSize)
+            SceneText(String(value), size: Metrics.tileFontSize)
                 .fill(isMuted ? Metrics.stuck : Metrics.ink)
                 .transform(.translate(Metrics.tile / 2, Metrics.tile / 2))
         }
     }
 
-    private func twoLineNodes() -> [Node<PermState>] {
+    private func twoLineNodes() -> [SceneNode<PermState>] {
         let origin = Metrics.twoLineOrigin
         let width = Double(n) * Metrics.tile
         let bottom = 2 * Metrics.tile + Metrics.bracketExtra
@@ -575,13 +575,13 @@ private struct PermRenderer {
         let left = -Metrics.bracketInset
         let right = width + Metrics.bracketInset
 
-        let bracket = { (x: Double, bow: Double) -> Node<PermState> in
-            path([.move(Vec2(x, top)), .quad(control: Vec2(bow, middle), end: Vec2(x, bottom))])
+        let bracket = { (x: Double, bow: Double) -> SceneNode<PermState> in
+            ScenePath([.move(Vec2(x, top)), .quad(control: Vec2(bow, middle), end: Vec2(x, bottom))])
                 .stroke(Metrics.stuck, lineWidth: Metrics.lineWidth)
                 .hitTesting(.disabled)
         }
 
-        var header: [Node<PermState>] = [
+        var header: [SceneNode<PermState>] = [
             bracket(left, -Metrics.bracketBow),
             bracket(right, width + Metrics.bracketBow),
         ]
@@ -592,28 +592,28 @@ private struct PermRenderer {
 
         let rowOrigin = origin + Vec2(0, Metrics.tile + Metrics.tileGap)
 
-        let tiles = permutation.enumerated().map { index, value -> Node<PermState> in
+        let tiles = permutation.enumerated().map { index, value -> SceneNode<PermState> in
             let id = "tl-tile-\(value)"
             let isDragged = context.draggedID == id
             let renderer = self
 
-            return Node(children: [tileContents(value, isMuted: false)])
+            return SceneNode(children: [tileContents(value, isMuted: false)])
                 .id(id)
                 .transform(.translate(rowOrigin + Vec2(Double(index) * Metrics.tile, isDragged ? -Metrics.liftedTile : 0)))
                 .zIndex(isDragged ? .absolute(1) : .relative(0))
                 .onDrag { renderer.tileSpec(value) }
         }
 
-        return [Node(children: header).transform(.translate(origin))] + tiles
+        return [SceneNode(children: header).transform(.translate(origin))] + tiles
     }
 
     // MARK: Cycles
 
-    private func cycleNodes() -> [Node<PermState>] {
+    private func cycleNodes() -> [SceneNode<PermState>] {
         let cycles = PermMath.cycles(of: permutation)
         var cursor = 0.0
         var nodePositions: [Int: Vec2] = [:]
-        var rings: [Node<PermState>] = []
+        var rings: [SceneNode<PermState>] = []
 
         for cycle in cycles {
             let count = cycle.count
@@ -631,16 +631,16 @@ private struct PermRenderer {
 
         let renderer = self
 
-        let nodes = (1...n).map { value -> Node<PermState> in
+        let nodes = (1...n).map { value -> SceneNode<PermState> in
             let id = "cyc-node-\(value)"
             let color = Metrics.color(value)
 
-            let content: Node<PermState> = group {
-                circle(radius: Metrics.nodeRadius)
+            let content: SceneNode<PermState> = SceneGroup {
+                SceneCircle(radius: Metrics.nodeRadius)
                     .fill(color.fill)
                     .stroke(color.stroke, lineWidth: Metrics.lineWidth)
 
-                label(String(value), size: Metrics.nodeFontSize).fill(Metrics.ink)
+                SceneText(String(value), size: Metrics.nodeFontSize).fill(Metrics.ink)
             }
 
             return content
@@ -652,14 +652,14 @@ private struct PermRenderer {
 
         return [
             smallLabel("cycle diagram", at: Metrics.cycleOrigin + Vec2(0, -84)),
-            Node(children: rings + nodes).transform(.translate(Metrics.cycleOrigin)),
+            SceneNode(children: rings + nodes).transform(.translate(Metrics.cycleOrigin)),
         ]
     }
 
     /// The same structure whatever the cycle's length, so rings can blend.
-    private func ringNode(_ cycle: [Int], center: Vec2, radius: Double) -> Node<PermState> {
-        var parts: [Node<PermState>] = [
-            circle(radius: radius)
+    private func ringNode(_ cycle: [Int], center: Vec2, radius: Double) -> SceneNode<PermState> {
+        var parts: [SceneNode<PermState>] = [
+            SceneCircle(radius: radius)
                 .stroke(Ink.faint)
                 .opacity(cycle.count == 1 ? 0 : 1)
                 .transform(.translate(center)),
@@ -671,13 +671,13 @@ private struct PermRenderer {
             parts += cycle.indices.map { arrowNode(cycle, index: $0, center: center, radius: radius) }
         }
 
-        return Node(children: parts)
+        return SceneNode(children: parts)
             .id("cyc-ring-\(cycle[0])")
             .zIndex(.relative(Metrics.ringZ))
     }
 
     /// A fixed point gets a little loop above its node.
-    private func selfLoop(_ value: Int, center: Vec2) -> Node<PermState> {
+    private func selfLoop(_ value: Int, center: Vec2) -> SceneNode<PermState> {
         let radius = Metrics.loopRadius
         let halfWidth = Metrics.loopHalfWidth
         let baseY = -Metrics.nodeRadius + Metrics.loopInset
@@ -686,8 +686,8 @@ private struct PermRenderer {
         let start = atan2(rise, -halfWidth)
         let end = atan2(rise, halfWidth) + 2 * .pi
 
-        return group {
-            path(arcCommands(center: loopCenter, radius: radius, from: start, to: end))
+        return SceneGroup {
+            ScenePath(arcCommands(center: loopCenter, radius: radius, from: start, to: end))
                 .stroke(Metrics.stuck, lineWidth: Metrics.lineWidth)
                 .hitTesting(.disabled)
 
@@ -702,7 +702,7 @@ private struct PermRenderer {
         .transform(.translate(center))
     }
 
-    private func arrowNode(_ cycle: [Int], index: Int, center: Vec2, radius: Double) -> Node<PermState> {
+    private func arrowNode(_ cycle: [Int], index: Int, center: Vec2, radius: Double) -> SceneNode<PermState> {
         let count = Double(cycle.count)
         let from = cycle[index]
         let to = cycle[(index + 1) % cycle.count]
@@ -713,8 +713,8 @@ private struct PermRenderer {
         let tip = center + Vec2(radius * cos(end), radius * sin(end))
         let tangent = Vec2(cos(end + .pi / 2), sin(end + .pi / 2))
 
-        return group {
-            path(arcCommands(center: center, radius: radius, from: start, to: end))
+        return SceneGroup {
+            ScenePath(arcCommands(center: center, radius: radius, from: start, to: end))
                 .stroke(Metrics.label, lineWidth: Metrics.lineWidth)
                 .hitTesting(.disabled)
 
@@ -725,20 +725,20 @@ private struct PermRenderer {
 
     // MARK: Matrix
 
-    private func matrixNode() -> Node<PermState> {
+    private func matrixNode() -> SceneNode<PermState> {
         let cell = Metrics.cell
         let side = Double(n) * cell
         let renderer = self
 
-        var parts: [Node<PermState>] = [
-            rect(width: side, height: side).fill(.white).stroke(Metrics.stuck).hitTesting(.disabled),
+        var parts: [SceneNode<PermState>] = [
+            SceneRect(width: side, height: side).fill(.white).stroke(Metrics.stuck).hitTesting(.disabled),
         ]
 
         for k in 1..<n {
             let offset = Double(k) * cell
 
-            parts.append(line(from: Vec2(offset, 0), to: Vec2(offset, side)).stroke(Ink.faint).hitTesting(.disabled))
-            parts.append(line(from: Vec2(0, offset), to: Vec2(side, offset)).stroke(Ink.faint).hitTesting(.disabled))
+            parts.append(SceneLine(from: Vec2(offset, 0), to: Vec2(offset, side)).stroke(Ink.faint).hitTesting(.disabled))
+            parts.append(SceneLine(from: Vec2(0, offset), to: Vec2(side, offset)).stroke(Ink.faint).hitTesting(.disabled))
         }
 
         for k in 1...n {
@@ -746,7 +746,7 @@ private struct PermRenderer {
 
             for position in [Vec2(center, -Metrics.matrixLabelOffset), Vec2(-Metrics.matrixLabelOffset, center)] {
                 parts.append(
-                    label(String(k), size: Metrics.matrixLabelSize)
+                    SceneText(String(k), size: Metrics.matrixLabelSize)
                         .fill(Metrics.stuck)
                         .transform(.translate(position))
                         .hitTesting(.disabled)
@@ -759,9 +759,9 @@ private struct PermRenderer {
             let row = permutation.firstIndex(of: value) ?? 0
             let color = Metrics.color(value)
 
-            let dot: Node<PermState> = group {
-                circle(radius: cell / 2 - Metrics.dotHitInset).fill(.clear)
-                circle(radius: Metrics.dotRadius).fill(color.stroke)
+            let dot: SceneNode<PermState> = SceneGroup {
+                SceneCircle(radius: cell / 2 - Metrics.dotHitInset).fill(.clear)
+                SceneCircle(radius: Metrics.dotRadius).fill(color.stroke)
             }
 
             parts.append(
@@ -773,7 +773,7 @@ private struct PermRenderer {
             )
         }
 
-        return Node(children: parts).transform(.translate(Metrics.matrixOrigin))
+        return SceneNode(children: parts).transform(.translate(Metrics.matrixOrigin))
     }
 
     // MARK: Walk
@@ -797,13 +797,13 @@ private struct PermRenderer {
         positions: [String: Vec2],
         isFront: @escaping (String, String) -> Bool,
         z: WalkZ
-    ) -> [Node<PermState>] {
+    ) -> [SceneNode<PermState>] {
         let at = { (key: String) in (positions[key] ?? .zero) * Metrics.solidRadius }
         let tokenKey = Permutohedron.key(permutation)
         let steps = stepKeys
         let vertices = vertexKeys
         let renderer = self
-        var parts: [Node<PermState>] = []
+        var parts: [SceneNode<PermState>] = []
 
         // A segment per step, plus a zero-length tip at the last vertex,
         // which stretches along a new edge as a step is appended.
@@ -814,7 +814,7 @@ private struct PermRenderer {
             let visible = front ? Metrics.walkFrontOpacity : Metrics.walkBackOpacity
 
             parts.append(
-                line(from: at(previous), to: at(key))
+                SceneLine(from: at(previous), to: at(key))
                     .id("ph-walk-\(index - 1)")
                     .stroke(Metrics.accent, lineWidth: Metrics.walkWidth)
                     .opacity(isHidden ? 0 : visible)
@@ -833,8 +833,8 @@ private struct PermRenderer {
             let front = isFront(vertices[index], vertices[index + 1])
 
             parts.append(
-                group {
-                    line(from: p - middle, to: q - middle)
+                SceneGroup {
+                    SceneLine(from: p - middle, to: q - middle)
                         .stroke(Metrics.accent, lineWidth: Metrics.walkHandleWidth)
                         .opacity(context.draggedID == id ? Metrics.activeOpacity : 0)
                 }
@@ -860,12 +860,12 @@ private struct PermRenderer {
             let id = "ph-v-\(index)"
 
             parts.append(
-                group {
-                    circle(radius: Metrics.vertexHitRadius)
+                SceneGroup {
+                    SceneCircle(radius: Metrics.vertexHitRadius)
                         .fill(Metrics.accent)
                         .opacity(context.draggedID == id ? Metrics.activeOpacity : 0)
 
-                    circle(radius: Metrics.vertexRadius)
+                    SceneCircle(radius: Metrics.vertexRadius)
                         .fill(Metrics.accent.withOpacity(Metrics.faceOpacity))
                 }
                 .id(id)
@@ -876,7 +876,7 @@ private struct PermRenderer {
         }
 
         parts.append(
-            circle(radius: Metrics.tokenRadius)
+            SceneCircle(radius: Metrics.tokenRadius)
                 .id("ph-token")
                 .fill(Metrics.accent)
                 .stroke(.white, lineWidth: Metrics.tokenStroke)
@@ -889,23 +889,23 @@ private struct PermRenderer {
         return parts
     }
 
-    private func flatNode() -> Node<PermState> {
+    private func flatNode() -> SceneNode<PermState> {
         let layout = n == 3 ? Permutohedron.hexagon : Permutohedron.schlegel
         let at = { (key: String) in (layout.positions[key] ?? .zero) * Metrics.solidRadius }
-        var parts: [Node<PermState>] = []
+        var parts: [SceneNode<PermState>] = []
 
         for (a, b) in layout.edges {
-            parts.append(line(from: at(a), to: at(b)).stroke(Metrics.mutedStroke).hitTesting(.disabled))
+            parts.append(SceneLine(from: at(a), to: at(b)).stroke(Metrics.mutedStroke).hitTesting(.disabled))
         }
 
         for key in layout.keys {
-            parts.append(circle(radius: Metrics.vertexRadius).fill(Metrics.stuck).transform(.translate(at(key))))
+            parts.append(SceneCircle(radius: Metrics.vertexRadius).fill(Metrics.stuck).transform(.translate(at(key))))
 
             if n == 3 {
                 let offset = (layout.positions[key] ?? .zero) * Metrics.hexagonLabelOffset
 
                 parts.append(
-                    label(key, size: Metrics.hexagonLabelSize)
+                    SceneText(key, size: Metrics.hexagonLabelSize)
                         .fill(Metrics.stuck)
                         .transform(.translate(at(key) + offset))
                         .hitTesting(.disabled)
@@ -917,7 +917,7 @@ private struct PermRenderer {
 
         parts += walkNodes(positions: layout.positions, isFront: { _, _ in true }, z: z)
 
-        return Node(children: parts)
+        return SceneNode(children: parts)
             .id("ph-flat")
             .transform(.translate(Metrics.solidOrigin))
     }
@@ -925,7 +925,7 @@ private struct PermRenderer {
     /// Faces, edges, walk, and token, stacked from back to front, so
     /// what's behind shows faintly through. Faces sit at their centers,
     /// so that `vary` can follow a grabbed face as the solid turns.
-    private func solidNode() -> Node<PermState> {
+    private func solidNode() -> SceneNode<PermState> {
         let solid = TruncatedOctahedron.shared
         let view = solid.projected(raw.view)
         let edges = Permutohedron.schlegel.edges
@@ -946,7 +946,7 @@ private struct PermRenderer {
             return edgeFront[a < b ? a + "-" + b : b + "-" + a] ?? false
         }
 
-        var parts: [Node<PermState>] = [
+        var parts: [SceneNode<PermState>] = [
             smallLabel("drag a face to turn it", at: Vec2(-scale - 8, scale + 22)),
         ]
 
@@ -959,8 +959,8 @@ private struct PermRenderer {
             let outline = [PathCommand.move(relative[0])] + relative.dropFirst().map(PathCommand.line) + [.close]
 
             parts.append(
-                group {
-                    path(outline).fill(fill.withOpacity(view.isFront[index] ? Metrics.faceOpacity : 0))
+                SceneGroup {
+                    ScenePath(outline).fill(fill.withOpacity(view.isFront[index] ? Metrics.faceOpacity : 0))
                 }
                 .id(face.id)
                 .transform(.translate(center * scale))
@@ -976,7 +976,7 @@ private struct PermRenderer {
 
         parts += walkNodes(positions: view.positions, isFront: isFront, z: z)
 
-        return Node(children: parts)
+        return SceneNode(children: parts)
             .id("ph-solid")
             .transform(.translate(Metrics.solidOrigin))
     }
@@ -985,17 +985,17 @@ private struct PermRenderer {
         _ view: TruncatedOctahedron.Projection,
         edges: [(String, String)],
         isFront: Bool
-    ) -> Node<PermState> {
+    ) -> SceneNode<PermState> {
         let scale = Metrics.solidRadius
 
-        let lines = edges.enumerated().map { index, edge -> Node<PermState> in
-            line(from: (view.positions[edge.0] ?? .zero) * scale, to: (view.positions[edge.1] ?? .zero) * scale)
+        let lines = edges.enumerated().map { index, edge -> SceneNode<PermState> in
+            SceneLine(from: (view.positions[edge.0] ?? .zero) * scale, to: (view.positions[edge.1] ?? .zero) * scale)
                 .stroke(isFront ? Metrics.frontEdge : Metrics.backEdge.withOpacity(Metrics.activeOpacity))
                 .opacity(view.edgeIsFront[index] == isFront ? 1 : 0)
                 .hitTesting(.disabled)
         }
 
-        return Node(children: lines)
+        return SceneNode(children: lines)
             .id(isFront ? "ph-edges-front" : "ph-edges-back")
             .zIndex(.relative(isFront ? Metrics.edgesFrontZ : Metrics.edgesBackZ))
     }
@@ -1079,12 +1079,12 @@ private struct PermRenderer {
         return [start] + segments.flatMap { $0 } + [end]
     }
 
-    private func wiringNode() -> Node<PermState> {
-        var parts: [Node<PermState>] = []
+    private func wiringNode() -> SceneNode<PermState> {
+        var parts: [SceneNode<PermState>] = []
 
         for strand in 1...n {
             parts.append(
-                label(String(strand), size: Metrics.labelSize)
+                SceneText(String(strand), size: Metrics.labelSize)
                     .fill(Metrics.label)
                     .transform(.translate(-Metrics.endLabelOffset, rowY(strand - 1)))
                     .hitTesting(.disabled)
@@ -1095,7 +1095,7 @@ private struct PermRenderer {
 
         for strand in 1...n {
             parts.append(
-                path(wirePath(strand))
+                ScenePath(wirePath(strand))
                     .id("wire-\(strand)")
                     .stroke(Metrics.color(strand).stroke, lineWidth: Metrics.wireWidth)
             )
@@ -1104,30 +1104,30 @@ private struct PermRenderer {
         parts += wordLetters.map(crossingHandle)
 
         for strand in 1...n {
-            parts.append(Node(children: strandHandles(strand)))
+            parts.append(SceneNode(children: strandHandles(strand)))
         }
 
         let title = canAppend(1) ? "wiring diagram" : "diagram full: cancel a double crossing"
 
-        return Node(children: [
+        return SceneNode(children: [
             smallLabel(title, at: Metrics.wiringHeadingOffset),
         ] + parts)
         .transform(.translate(Metrics.wiringOrigin))
     }
 
     /// Drag a strand's end past a neighbor to add a crossing.
-    private func wireEndHandle(_ strand: Int) -> Node<PermState> {
+    private func wireEndHandle(_ strand: Int) -> SceneNode<PermState> {
         let id = "wire-end-\(strand)"
         let row = permutation.firstIndex(of: strand) ?? 0
         let color = Metrics.color(strand)
         let renderer = self
 
-        return group {
-            circle(radius: Metrics.rowSpacing / 2 - 1)
+        return SceneGroup {
+            SceneCircle(radius: Metrics.rowSpacing / 2 - 1)
                 .fill(color.fill)
                 .opacity(context.draggedID == id ? Metrics.endHitOpacity : 0)
 
-            label(String(strand), size: Metrics.labelSize)
+            SceneText(String(strand), size: Metrics.labelSize)
                 .fill(color.stroke)
                 .hitTesting(.disabled)
         }
@@ -1137,7 +1137,7 @@ private struct PermRenderer {
         .onDrag { renderer.adjacentSpec(row: row) }
     }
 
-    private func crossingHandle(_ letter: WordLetter) -> Node<PermState> {
+    private func crossingHandle(_ letter: WordLetter) -> SceneNode<PermState> {
         let id = "cross-\(letter.pairID)"
         let moves = PermMath.crossingMoves(word, index: letter.wordIndex)
         let center = Vec2(
@@ -1146,8 +1146,8 @@ private struct PermRenderer {
         )
         let renderer = self
 
-        return group {
-            circle(radius: min(columnWidth, Metrics.rowSpacing) / 2)
+        return SceneGroup {
+            SceneCircle(radius: min(columnWidth, Metrics.rowSpacing) / 2)
                 .fill(moves.isEmpty ? Metrics.stuck : Metrics.accent)
                 .opacity(context.draggedID == id ? Metrics.activeOpacity : 0)
         }
@@ -1179,9 +1179,9 @@ private struct PermRenderer {
     /// Handles along a strand: drag a straight bit across its neighbor to
     /// write s_i s_i, the apex of a double crossing back to cancel it, or
     /// a strand bumping around the middle of a braid across it.
-    private func strandHandles(_ strand: Int) -> [Node<PermState>] {
+    private func strandHandles(_ strand: Int) -> [SceneNode<PermState>] {
         let pairs = PermMath.doublePairs(word)
-        var handles: [Node<PermState>] = []
+        var handles: [SceneNode<PermState>] = []
         var row = strand - 1
         var index = 0
 
@@ -1199,7 +1199,7 @@ private struct PermRenderer {
 
             if let column, !column.isLetter, index + 1 < word.count, !word[index + 1].isLetter {
                 // Mid-cancel: the apex handle lands here.
-                handles.append(Node<PermState>().id(id).transform(.translate(edgeX(index), rowY(row))))
+                handles.append(SceneNode<PermState>().id(id).transform(.translate(edgeX(index), rowY(row))))
                 index += 2
                 continue
             }
@@ -1232,12 +1232,12 @@ private struct PermRenderer {
         return row < column.generator ? .below : .above
     }
 
-    private func apexHandle(id: String, index: Int, row: Int) -> Node<PermState> {
+    private func apexHandle(id: String, index: Int, row: Int) -> SceneNode<PermState> {
         let side = Metrics.rowSpacing * 2 * Metrics.apexShare
         let renderer = self
 
-        return group {
-            rect(width: side, height: side, cornerRadius: Metrics.cornerRadius)
+        return SceneGroup {
+            SceneRect(width: side, height: side, cornerRadius: Metrics.cornerRadius)
                 .fill(Metrics.handle)
                 .opacity(context.draggedID == id ? Metrics.activeOpacity : 0)
                 .transform(.translate(-side / 2, -side / 2))
@@ -1250,12 +1250,12 @@ private struct PermRenderer {
         }
     }
 
-    private func straightHandle(id: String, index: Int, row: Int, side: BraidSide?) -> Node<PermState> {
+    private func straightHandle(id: String, index: Int, row: Int, side: BraidSide?) -> SceneNode<PermState> {
         let height = Metrics.rowSpacing * 2 * Metrics.handleRowShare
         let renderer = self
 
-        return group {
-            rect(width: columnWidth, height: height, cornerRadius: Metrics.cornerRadius)
+        return SceneGroup {
+            SceneRect(width: columnWidth, height: height, cornerRadius: Metrics.cornerRadius)
                 .fill(Metrics.handle)
                 .opacity(context.draggedID == id ? Metrics.activeOpacity : 0)
                 .transform(.translate(-columnWidth, -height / 2))

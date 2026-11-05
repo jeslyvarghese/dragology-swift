@@ -34,23 +34,23 @@ enum TriangleMode: Int, CaseIterable {
     }
 }
 
-func triangle(mode: TriangleMode) -> Draggable<TriangleState> {
+func triangle(mode: TriangleMode) -> DragScene<TriangleState> {
     { context in
         let position = Triangle.positions[context.state.index]
 
-        return group {
+        return SceneGroup {
             for slot in Triangle.positions {
-                rect(width: Triangle.side, height: Triangle.side, cornerRadius: Triangle.cornerRadius)
+                SceneRect(width: Triangle.side, height: Triangle.side, cornerRadius: Triangle.cornerRadius)
                     .stroke(Ink.outline)
                     .transform(.translate(slot))
             }
 
-            rect(width: Triangle.side, height: Triangle.side, cornerRadius: Triangle.cornerRadius)
+            SceneRect(width: Triangle.side, height: Triangle.side, cornerRadius: Triangle.cornerRadius)
                 .id("switch")
                 .fill(Ink.text)
                 .transform(.translate(position))
                 .onDrag {
-                    let d = context.d
+                    let d = context.drag
 
                     switch mode {
                     case .closest:
@@ -65,30 +65,30 @@ func triangle(mode: TriangleMode) -> Draggable<TriangleState> {
                 }
 
             // Shows how the rest of the scene blends along with the square.
-            line(from: Triangle.center, to: position + Triangle.half)
+            SceneLine(from: Triangle.center, to: position + Triangle.half)
                 .stroke(Ink.outline, lineWidth: Triangle.lineWidth)
                 .hitTesting(.disabled)
         }
     }
 }
 
-/// The closest mode again, written by hand with `d.custom`.
-func customTriangle(_ context: RenderContext<TriangleState>) -> Node<TriangleState> {
+/// The closest mode again, written by hand with `drag.custom`.
+func customTriangle(_ context: SceneContext<TriangleState>) -> SceneNode<TriangleState> {
     let position = Triangle.positions[context.state.index]
 
-    return group {
+    return SceneGroup {
         for slot in Triangle.positions {
-            rect(width: Triangle.side, height: Triangle.side, cornerRadius: Triangle.cornerRadius)
+            SceneRect(width: Triangle.side, height: Triangle.side, cornerRadius: Triangle.cornerRadius)
                 .stroke(Ink.outline)
                 .transform(.translate(slot))
         }
 
-        rect(width: Triangle.side, height: Triangle.side, cornerRadius: Triangle.cornerRadius)
+        SceneRect(width: Triangle.side, height: Triangle.side, cornerRadius: Triangle.cornerRadius)
             .id("switch")
             .fill(Ink.purple)
             .transform(.translate(position))
             .onDrag {
-                context.d.custom { dragContext in
+                context.drag.custom { dragContext in
                     { frame in
                         let dragged = frame.pointer - dragContext.anchor
                         let best = Triangle.positions.indices.min {
@@ -98,7 +98,7 @@ func customTriangle(_ context: RenderContext<TriangleState>) -> Node<TriangleSta
                         let state = Triangle.states[best]
 
                         var result = DragResult(
-                            preview: Lazy { dragContext.render(state) },
+                            preview: LazyPreview { dragContext.render(state) },
                             dropState: state,
                             gap: dragged.distance(to: Triangle.positions[best])
                         )
@@ -143,30 +143,30 @@ enum RingMode: Int, CaseIterable {
     }
 }
 
-func ring(mode: RingMode) -> Draggable<RingState> {
+func ring(mode: RingMode) -> DragScene<RingState> {
     { context in
         let state = context.state
         let count = state.beads.count
 
-        return group {
-            circle(radius: Ring.radius).stroke(Ink.faint, lineWidth: Ring.lineWidth)
+        return SceneGroup {
+            SceneCircle(radius: Ring.radius).stroke(Ink.faint, lineWidth: Ring.lineWidth)
 
             for (index, bead) in state.beads.enumerated() {
                 let angle = Double(index) / Double(count) * Ring.fullTurn + Ring.topOfCircle
                 let color = Ink.series[Int(bead.unicodeScalars.first?.value ?? 0) % Ink.series.count]
 
-                group {
-                    circle(radius: Ring.beadRadius)
+                SceneGroup {
+                    SceneCircle(radius: Ring.beadRadius)
                         .fill(color)
                         .stroke(Ink.muted, lineWidth: Ring.lineWidth)
 
-                    label(bead, size: Ring.fontSize).fill(.white)
+                    SceneText(bead, size: Ring.fontSize).fill(.white)
                 }
                 .id(bead)
                 .transform(.translate(polar(radius: Ring.radius, degrees: angle)))
                 .zIndex(.relative(context.draggedID == bead ? Ring.draggedZ : Ring.restingZ))
                 .onDrag {
-                    let d = context.d
+                    let d = context.drag
 
                     // Every position this bead could be reinserted at.
                     let orders = state.beads.indices.map { target -> RingState in
@@ -247,22 +247,22 @@ private enum Kanban {
     static let draggedCardZ = 10
 }
 
-func kanban(_ context: RenderContext<KanbanState>) -> Node<KanbanState> {
+func kanban(_ context: SceneContext<KanbanState>) -> SceneNode<KanbanState> {
     let state = context.state
-    let d = context.d
+    let d = context.drag
 
-    return group {
+    return SceneGroup {
         for (columnIndex, column) in state.columns.enumerated() {
             let columnID = "column-\(column.id)"
             let height = Kanban.headerHeight + Kanban.padding * 2
                 + Double(column.cards.count) * (Kanban.cardHeight + Kanban.cardGap)
 
-            group {
-                rect(width: Kanban.columnWidth, height: height, cornerRadius: Kanban.cornerRadius)
+            SceneGroup {
+                SceneRect(width: Kanban.columnWidth, height: height, cornerRadius: Kanban.cornerRadius)
                     .fill(Ink.panel)
                     .stroke(Ink.outline)
 
-                label(column.title, size: Kanban.titleSize)
+                SceneText(column.title, size: Kanban.titleSize)
                     .fill(Ink.text)
                     .transform(.translate(Kanban.columnWidth / 2, Kanban.headerHeight / 2))
 
@@ -291,20 +291,20 @@ private func kanbanCard(
     _ card: KanbanCard,
     column: Int,
     index: Int,
-    context: RenderContext<KanbanState>
-) -> Node<KanbanState> {
+    context: SceneContext<KanbanState>
+) -> SceneNode<KanbanState> {
     let state = context.state
     let id = "card-\(card.id)"
     let isDragged = context.draggedID == id
     let width = Kanban.columnWidth - Kanban.padding * 2
     let y = Kanban.headerHeight + Kanban.padding + Double(index) * (Kanban.cardHeight + Kanban.cardGap)
 
-    return group {
-        rect(width: width, height: Kanban.cardHeight, cornerRadius: Kanban.cornerRadius)
+    return SceneGroup {
+        SceneRect(width: width, height: Kanban.cardHeight, cornerRadius: Kanban.cornerRadius)
             .fill(.white)
             .stroke(isDragged ? Ink.blue : Ink.faint)
 
-        label(card.title, size: Kanban.cardTextSize)
+        SceneText(card.title, size: Kanban.cardTextSize)
             .fill(Ink.text)
             .transform(.translate(width / 2, Kanban.cardHeight / 2))
     }
@@ -324,7 +324,7 @@ private func kanbanCard(
             }
         }
 
-        return context.d.closest(moves).withFloating(FloatingOptions(ghostOpacity: Kanban.ghostOpacity))
+        return context.drag.closest(moves).withFloating(FloatingOptions(ghostOpacity: Kanban.ghostOpacity))
     }
 }
 
@@ -356,17 +356,17 @@ private enum Hanoi {
     }
 }
 
-func hanoi(_ context: RenderContext<HanoiState>) -> Node<HanoiState> {
+func hanoi(_ context: SceneContext<HanoiState>) -> SceneNode<HanoiState> {
     let state = context.state
 
-    return group {
+    return SceneGroup {
         for pegIndex in state.pegs.indices {
-            group {
-                rect(width: Hanoi.baseWidth, height: Hanoi.baseHeight)
+            SceneGroup {
+                SceneRect(width: Hanoi.baseWidth, height: Hanoi.baseHeight)
                     .fill(Ink.muted)
                     .transform(.translate(-Hanoi.baseWidth / 2, Hanoi.pegHeight))
 
-                rect(width: Hanoi.pegWidth, height: Hanoi.pegHeight)
+                SceneRect(width: Hanoi.pegWidth, height: Hanoi.pegHeight)
                     .fill(Ink.outline)
                     .transform(.translate(-Hanoi.pegWidth / 2, 0))
             }
@@ -387,18 +387,18 @@ private func hanoiDisk(
     peg: Int,
     position: Int,
     height: Int,
-    context: RenderContext<HanoiState>
-) -> Node<HanoiState> {
+    context: SceneContext<HanoiState>
+) -> SceneNode<HanoiState> {
     let state = context.state
     let width = Hanoi.diskWidth(disk)
     let x = Hanoi.firstPegX + Double(peg) * Hanoi.pegSpacing - width / 2
     let y = Hanoi.pegHeight - Double(height - position) * Hanoi.diskHeight
 
-    let node: Node<HanoiState> = group {
-        rect(width: width, height: Hanoi.diskHeight, cornerRadius: Hanoi.cornerRadius)
+    let node: SceneNode<HanoiState> = SceneGroup {
+        SceneRect(width: width, height: Hanoi.diskHeight, cornerRadius: Hanoi.cornerRadius)
             .fill(Ink.series[disk % Ink.series.count])
 
-        label(String(disk), size: Hanoi.fontSize)
+        SceneText(String(disk), size: Hanoi.fontSize)
             .fill(.white)
             .transform(.translate(width / 2, Hanoi.diskHeight / 2))
     }
@@ -422,7 +422,7 @@ private func hanoiDisk(
             return copy
         }
 
-        return context.d.closest(moves).withFloating(FloatingOptions(ghostOpacity: Hanoi.ghostOpacity))
+        return context.drag.closest(moves).withFloating(FloatingOptions(ghostOpacity: Hanoi.ghostOpacity))
     }
 }
 
@@ -461,20 +461,20 @@ private enum Fifteen {
     static let neighbors = [Cell(x: -1, y: 0), Cell(x: 1, y: 0), Cell(x: 0, y: -1), Cell(x: 0, y: 1)]
 }
 
-func fifteen(_ context: RenderContext<FifteenState>) -> Node<FifteenState> {
+func fifteen(_ context: SceneContext<FifteenState>) -> SceneNode<FifteenState> {
     let state = context.state
 
-    return group {
+    return SceneGroup {
         for (key, cell) in state.tiles.sorted(by: { $0.key < $1.key }) {
             let isBlank = key == FifteenState.blank
 
-            group {
-                rect(width: Fifteen.tile, height: Fifteen.tile)
+            SceneGroup {
+                SceneRect(width: Fifteen.tile, height: Fifteen.tile)
                     .fill(isBlank ? .clear : Ink.panel)
                     .stroke(isBlank ? .clear : Ink.text, lineWidth: Fifteen.lineWidth)
 
                 if !isBlank {
-                    label(key, size: Fifteen.fontSize)
+                    SceneText(key, size: Fifteen.fontSize)
                         .fill(Ink.text)
                         .transform(.translate(Fifteen.tile / 2, Fifteen.tile / 2))
                 }
@@ -495,10 +495,10 @@ func fifteen(_ context: RenderContext<FifteenState>) -> Node<FifteenState> {
                     swapped.tiles[key] = target
                     swapped.tiles[other] = cell
 
-                    return context.d.between([state, swapped])
+                    return context.drag.between([state, swapped])
                 }
 
-                return context.d.closest(swaps)
+                return context.drag.closest(swaps)
                     .withSnapRadius(Fifteen.snapRadius, chaining: .chainOnSnap)
             }
         }
@@ -522,7 +522,7 @@ private enum Tromino {
     static let inset = 2.0
     static let quarterTurn = 90.0
     static let colors = [
-        RGBA(hex: 0xADD8E6), RGBA(hex: 0x90EE90), RGBA(hex: 0xFFB6C1), RGBA(hex: 0xFFFFE0),
+        SceneColor(hex: 0xADD8E6), SceneColor(hex: 0x90EE90), SceneColor(hex: 0xFFB6C1), SceneColor(hex: 0xFFFFE0),
     ]
 }
 
@@ -538,16 +538,16 @@ enum TrominoMode: Int, CaseIterable {
     }
 }
 
-func tromino(mode: TrominoMode) -> Draggable<TrominoState> {
+func tromino(mode: TrominoMode) -> DragScene<TrominoState> {
     { context in
         let state = context.state
-        let d = context.d
+        let d = context.drag
         let square = Tromino.cell - 2 * Tromino.padding
 
-        return group {
+        return SceneGroup {
             trominoTiling(state.missing, level: Tromino.level)
 
-            rect(width: square, height: square)
+            SceneRect(width: square, height: square)
                 .id("missing-square")
                 .fill(.black)
                 .zIndex(.relative(1))
@@ -604,9 +604,9 @@ private func singleRotations(of state: TrominoState) -> [TrominoState] {
 
 /// Tiles a board with one missing square: split it in four, then cover
 /// the center with a tromino that gives each quarter a missing square.
-private func trominoTiling(_ missing: Cell, level: Int) -> Node<TrominoState> {
+private func trominoTiling(_ missing: Cell, level: Int) -> SceneNode<TrominoState> {
     guard level > 0 else {
-        return rect(width: Tromino.cell, height: Tromino.cell).fill(.white).stroke(.black)
+        return SceneRect(width: Tromino.cell, height: Tromino.cell).fill(.white).stroke(.black)
     }
 
     let half = 1 << (level - 1)
@@ -618,7 +618,7 @@ private func trominoTiling(_ missing: Cell, level: Int) -> Node<TrominoState> {
     let far = Tromino.cell - Tromino.padding
     let near = Tromino.padding - Tromino.cell
 
-    return group {
+    return SceneGroup {
         trominoTiling(isLeft && isTop ? missing : Cell(x: half - 1, y: half - 1), level: level - 1)
 
         trominoTiling(
@@ -633,13 +633,13 @@ private func trominoTiling(_ missing: Cell, level: Int) -> Node<TrominoState> {
         )
         .transform(.translate(0, offset))
 
-        group {
+        SceneGroup {
             trominoTiling(
                 !isLeft && !isTop ? Cell(x: missing.x - half, y: missing.y - half) : Cell(x: 0, y: 0),
                 level: level - 1
             )
 
-            path([
+            ScenePath([
                 .move(Vec2(edge, edge)),
                 .line(Vec2(near, edge)),
                 .line(Vec2(near, far)),

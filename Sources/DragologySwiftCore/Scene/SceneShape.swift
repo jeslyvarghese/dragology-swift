@@ -1,7 +1,7 @@
 import Foundation
 
 /// An sRGB color with alpha, each component in `0...1`.
-public struct RGBA: Equatable, Sendable {
+public struct SceneColor: Equatable, Sendable {
     public var red, green, blue, alpha: Double
 
     public init(red: Double, green: Double, blue: Double, alpha: Double = 1) {
@@ -26,18 +26,18 @@ public struct RGBA: Equatable, Sendable {
         )
     }
 
-    public static let black = RGBA(red: 0, green: 0, blue: 0)
-    public static let white = RGBA(red: 1, green: 1, blue: 1)
-    public static let clear = RGBA(red: 0, green: 0, blue: 0, alpha: 0)
+    public static let black = SceneColor(red: 0, green: 0, blue: 0)
+    public static let white = SceneColor(red: 1, green: 1, blue: 1)
+    public static let clear = SceneColor(red: 0, green: 0, blue: 0, alpha: 0)
 
-    var transparent: RGBA {
+    var transparent: SceneColor {
         var copy = self
         copy.alpha = 0
         return copy
     }
 
-    static func lerp(_ a: RGBA, _ b: RGBA, _ t: Double) -> RGBA {
-        RGBA(
+    static func lerp(_ a: SceneColor, _ b: SceneColor, _ t: Double) -> SceneColor {
+        SceneColor(
             red: mix(a.red, b.red, t),
             green: mix(a.green, b.green, t),
             blue: mix(a.blue, b.blue, t),
@@ -46,7 +46,7 @@ public struct RGBA: Equatable, Sendable {
     }
 
     /// A missing color blends as the other color, faded out.
-    static func lerpOptional(_ a: RGBA?, _ b: RGBA?, _ t: Double) -> RGBA? {
+    static func lerpOptional(_ a: SceneColor?, _ b: SceneColor?, _ t: Double) -> SceneColor? {
         switch (a, b) {
         case (nil, nil):
             return nil
@@ -61,27 +61,27 @@ public struct RGBA: Equatable, Sendable {
 }
 
 /// How a shape is painted.
-public struct Style: Equatable, Sendable {
-    public var fill: RGBA?
-    public var stroke: RGBA?
+public struct SceneStyle: Equatable, Sendable {
+    public var fill: SceneColor?
+    public var stroke: SceneColor?
     public var lineWidth: Double
 
-    public init(fill: RGBA? = nil, stroke: RGBA? = nil, lineWidth: Double = 1) {
+    public init(fill: SceneColor? = nil, stroke: SceneColor? = nil, lineWidth: Double = 1) {
         self.fill = fill
         self.stroke = stroke
         self.lineWidth = lineWidth
     }
 
-    static func lerp(_ a: Style, _ b: Style, _ t: Double) -> Style {
-        Style(
-            fill: RGBA.lerpOptional(a.fill, b.fill, t),
-            stroke: RGBA.lerpOptional(a.stroke, b.stroke, t),
+    static func lerp(_ a: SceneStyle, _ b: SceneStyle, _ t: Double) -> SceneStyle {
+        SceneStyle(
+            fill: SceneColor.lerpOptional(a.fill, b.fill, t),
+            stroke: SceneColor.lerpOptional(a.stroke, b.stroke, t),
             lineWidth: mix(a.lineWidth, b.lineWidth, t)
         )
     }
 }
 
-/// One segment of a `Shape.path`.
+/// One segment of a `SceneShape.path`.
 public enum PathCommand: Equatable, Sendable {
     case move(Vec2)
     case line(Vec2)
@@ -229,7 +229,7 @@ struct Bounds: Equatable {
     }
 
     /// The box around this one, after a transform.
-    func transformed(by transform: Transform) -> Bounds {
+    func transformed(by transform: SceneTransform) -> Bounds {
         let corners = [min, Vec2(max.x, min.y), max, Vec2(min.x, max.y)]
 
         return Bounds(around: corners.map(transform.localToGlobal)) ?? self
@@ -245,13 +245,16 @@ struct Bounds: Equatable {
 
 /// What a node draws. Rects grow from the origin; circles and text
 /// are centered on it. Position them with the node's transform.
-public enum Shape: Equatable, Sendable {
+public enum SceneShape: Equatable, Sendable {
     case none
     case rect(size: Vec2, cornerRadius: Double)
     case circle(radius: Double)
     case line(from: Vec2, to: Vec2)
     case path([PathCommand])
     case text(String, size: Double)
+    /// A space held for content the host draws, such as a SwiftUI view.
+    /// It grows from the origin, like a rect.
+    case slot(size: Vec2)
 
     private enum Metrics {
         /// Lines are thin, so grabbing one needs this much slack.
@@ -262,13 +265,16 @@ public enum Shape: Equatable, Sendable {
 
     /// Blends matching shapes. Anything else switches over at the halfway
     /// point, as there's no meaningful in-between.
-    static func lerp(_ a: Shape, _ b: Shape, _ t: Double) -> Shape {
+    static func lerp(_ a: SceneShape, _ b: SceneShape, _ t: Double) -> SceneShape {
         let halfway = 0.5
         let nearest = t < halfway ? a : b
 
         switch (a, b) {
         case (.rect(let p, let r), .rect(let q, let s)):
             return .rect(size: Vec2.lerp(p, q, t), cornerRadius: mix(r, s, t))
+
+        case (.slot(let p), .slot(let q)):
+            return .slot(size: Vec2.lerp(p, q, t))
 
         case (.circle(let r), .circle(let s)):
             return .circle(radius: mix(r, s, t))
@@ -295,7 +301,7 @@ public enum Shape: Equatable, Sendable {
 
     /// Blends paths of different structures, by giving both the same
     /// number of points. Nil if either has too few points to measure.
-    private static func lerpResampled(_ a: [PathCommand], _ b: [PathCommand], _ t: Double) -> Shape? {
+    private static func lerpResampled(_ a: [PathCommand], _ b: [PathCommand], _ t: Double) -> SceneShape? {
         let minPoints = 2
         let pointsA = PathCommand.flattened(a)
         let pointsB = PathCommand.flattened(b)
@@ -322,7 +328,7 @@ public enum Shape: Equatable, Sendable {
         case .none:
             return nil
 
-        case .rect(let size, _):
+        case .rect(let size, _), .slot(let size):
             // A solver can leave a size a hair below zero.
             return Bounds(around: [.zero, size])
 
@@ -343,7 +349,7 @@ public enum Shape: Equatable, Sendable {
 
     /// Whether a point in local coordinates lands on this shape. As in
     /// SVG, an outline with no fill doesn't catch touches inside it.
-    func contains(_ point: Vec2, style: Style) -> Bool {
+    func contains(_ point: Vec2, style: SceneStyle) -> Bool {
         switch self {
         case .none:
             return false
@@ -352,7 +358,7 @@ public enum Shape: Equatable, Sendable {
             let hitRadius = max(style.lineWidth / 2, Metrics.minLineHitRadius)
             return Self.distance(from: point, toSegment: from, to) <= hitRadius
 
-        case .text:
+        case .text, .slot:
             return localBounds?.contains(point) ?? false
 
         case .circle(let radius):

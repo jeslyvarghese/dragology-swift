@@ -22,7 +22,7 @@ public struct BetweenOptions: Sendable {
 }
 
 /// Blends the rendered targets by where the pointer sits among them.
-final class BetweenOperator<State: Equatable>: Operator<State> {
+final class BetweenOperator<State: Equatable>: DragOperator<State> {
     private struct Target {
         var state: State
         var scene: LayeredScene<State>
@@ -35,7 +35,7 @@ final class BetweenOperator<State: Equatable>: Operator<State> {
 
     private let options: BetweenOptions
     /// Non-fixed targets, which have to run on every frame.
-    private let branches: [Operator<State>]
+    private let branches: [DragOperator<State>]
     private var targets: [Target] = []
     private var triangulation: Triangulation?
 
@@ -102,7 +102,7 @@ final class BetweenOperator<State: Equatable>: Operator<State> {
         }
 
         return DragResult(
-            preview: Lazy { LayeredScene.lerp(scenes, weights: weights) },
+            preview: LazyPreview { LayeredScene.lerp(scenes, weights: weights) },
             dropState: nearest.state,
             gap: projection.distance,
             grabPosition: grabPosition

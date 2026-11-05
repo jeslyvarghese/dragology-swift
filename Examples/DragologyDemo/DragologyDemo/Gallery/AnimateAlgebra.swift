@@ -77,12 +77,12 @@ private enum Metrics {
     static let baseStrokeAlpha = 0.25
     static let strokeAlphaStep = 0.08
     static let maxStrokeAlpha = 0.5
-    static let fill = RGBA(hex: 0xB4AA96)
-    static let stroke = RGBA(hex: 0x8C8273)
-    static let ink = RGBA(hex: 0x3A3A38)
+    static let fill = SceneColor(hex: 0xB4AA96)
+    static let stroke = SceneColor(hex: 0x8C8273)
+    static let ink = SceneColor(hex: 0x3A3A38)
 }
 
-func animateAlgebra(mode: AlgebraMode) -> Draggable<AlgebraState> {
+func animateAlgebra(mode: AlgebraMode) -> DragScene<AlgebraState> {
     let rules = mode.rules
 
     return { context in
@@ -96,16 +96,16 @@ func animateAlgebra(mode: AlgebraMode) -> Draggable<AlgebraState> {
 /// Nested boxes: an operator's label, with its operands stacked beside it.
 private struct AlgebraRenderer {
     struct Drawn {
-        var node: Node<AlgebraState>
+        var node: SceneNode<AlgebraState>
         var width: Double
         var height: Double
     }
 
-    let context: RenderContext<AlgebraState>
+    let context: SceneContext<AlgebraState>
     let rules: [AlgebraRewrite]
 
     private func dragSpec(for id: String) -> DragSpec<AlgebraState> {
-        let d = context.d
+        let d = context.drag
         let state = context.state
         let rewritten = AlgebraEngine.allRewrites(of: state.tree, rules: rules, trigger: id)
 
@@ -122,10 +122,10 @@ private struct AlgebraRenderer {
         let children = tree.children.map { draw($0, depth: depth + 1, isInDragged: isDragged) }
 
         var y = 0.0
-        var stacked: [Node<AlgebraState>] = []
+        var stacked: [SceneNode<AlgebraState>] = []
 
         for child in children {
-            stacked.append(Node(children: [child.node]).transform(.translate(0, y)))
+            stacked.append(SceneNode(children: [child.node]).transform(.translate(0, y)))
             y += child.height + Metrics.gap
         }
 
@@ -141,12 +141,12 @@ private struct AlgebraRenderer {
         let renderer = self
         let id = tree.id
 
-        let node: Node<AlgebraState> = group {
-            rect(width: width, height: height, cornerRadius: corner)
+        let node: SceneNode<AlgebraState> = SceneGroup {
+            SceneRect(width: width, height: height, cornerRadius: corner)
                 .fill(Metrics.fill.withOpacity(fillAlpha))
                 .stroke(Metrics.stroke.withOpacity(strokeAlpha), lineWidth: Metrics.strokeWidth)
 
-            label(tree.label, size: Metrics.fontSize)
+            SceneText(tree.label, size: Metrics.fontSize)
                 .fill(Metrics.ink)
                 .transform(.translate(
                     Metrics.padding + Metrics.labelWidth / 2,
@@ -155,7 +155,7 @@ private struct AlgebraRenderer {
                 .hitTesting(.disabled)
 
             if !stacked.isEmpty {
-                Node<AlgebraState>(children: stacked).transform(.translate(
+                SceneNode<AlgebraState>(children: stacked).transform(.translate(
                     Metrics.padding + Metrics.labelWidth + Metrics.gap,
                     Metrics.padding
                 ))

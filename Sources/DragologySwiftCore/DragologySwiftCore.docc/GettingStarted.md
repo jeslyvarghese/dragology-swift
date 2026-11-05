@@ -8,10 +8,10 @@ In Xcode, choose **File > Add Package Dependencies** and enter
 `https://github.com/jeslyvarghese/dragology-swift`. Or add it to `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.2.0")
+.package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.3.0")
 ```
 
-Then depend on the `DragologySwift` product. It needs iOS 17 or macOS 14.
+Then depend on the `DragologySwift` product. It needs iOS 26 or macOS 26.
 
 ## Describe your state
 
@@ -32,12 +32,12 @@ global `let` closure.
 import DragologySwift
 import SwiftUI
 
-func toggle(_ context: RenderContext<ToggleState>) -> Node<ToggleState> {
-    group {
-        rect(width: 120, height: 60, cornerRadius: 30)
-            .fill(context.state.isOn ? RGBA(hex: 0x22C55E) : RGBA(hex: 0xD1D5DB))
+func toggle(_ context: SceneContext<ToggleState>) -> SceneNode<ToggleState> {
+    SceneGroup {
+        SceneRect(width: 120, height: 60, cornerRadius: 30)
+            .fill(context.state.isOn ? SceneColor(hex: 0x22C55E) : SceneColor(hex: 0xD1D5DB))
 
-        circle(radius: 26)
+        SceneCircle(radius: 26)
             .id("knob")
             .fill(.white)
             .transform(.translate(context.state.isOn ? 90 : 30, 30))
@@ -49,15 +49,15 @@ So far this is only a picture, with nothing about touch in it.
 
 ## Say what the knob can become
 
-Add ``Node/onDrag(_:)`` to the knob, listing the states it can be dragged between:
+Add ``SceneNode/onDrag(_:)`` to the knob, listing the states it can be dragged between:
 
 ```swift
-circle(radius: 26)
+SceneCircle(radius: 26)
     .id("knob")
     .fill(.white)
     .transform(.translate(context.state.isOn ? 90 : 30, 30))
     .onDrag {
-        context.d.between([ToggleState(isOn: false), ToggleState(isOn: true)])
+        context.drag.between([ToggleState(isOn: false), ToggleState(isOn: true)])
     }
 ```
 
@@ -66,14 +66,14 @@ color blends along with it, and it settles on the nearest state when you let go.
 
 ## Put it on screen
 
-`DraggableCanvas` hosts the scene in SwiftUI, and keeps a binding up to date on each drop:
+`DragCanvas` hosts the scene in SwiftUI, and keeps a binding up to date on each drop:
 
 ```swift
 struct ContentView: View {
     @State private var state = ToggleState()
 
     var body: some View {
-        DraggableCanvas(state: $state, draggable: toggle)
+        DragCanvas(state: $state, scene: toggle)
             .frame(width: 200, height: 100)
     }
 }

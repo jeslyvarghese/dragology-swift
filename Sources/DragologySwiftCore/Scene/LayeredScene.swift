@@ -2,16 +2,16 @@ import Foundation
 
 /// A piece of a scene that stacks and blends independently. Its node's
 /// transform and opacity already include those of its ancestors.
-public struct Layer<State: Equatable> {
-    public var node: Node<State>
+public struct SceneLayer<State: Equatable> {
+    public var node: SceneNode<State>
     public var stackingPath: [Int]
 }
 
 /// What a touch landed on.
 struct Hit<State: Equatable> {
     struct DragTarget {
-        var node: Node<State>
-        var transform: Transform
+        var node: SceneNode<State>
+        var transform: SceneTransform
     }
 
     var dragTarget: DragTarget?
@@ -26,7 +26,7 @@ struct Hit<State: Equatable> {
 public struct LayeredScene<State: Equatable> {
     private static var rootKey: String { "" }
 
-    public private(set) var layers: [String: Layer<State>] = [:]
+    public private(set) var layers: [String: SceneLayer<State>] = [:]
     /// Layer keys in insertion order, the tiebreak for equal stacking.
     private(set) var order: [String] = []
     /// Each layer id's nested layer ids, transitively.
@@ -35,7 +35,7 @@ public struct LayeredScene<State: Equatable> {
     init() {}
 
     /// Pulls every node with an id out into its own layer.
-    public init(root: Node<State>) {
+    public init(root: SceneNode<State>) {
         let remainder = extract(
             root,
             ancestors: [],
@@ -46,17 +46,17 @@ public struct LayeredScene<State: Equatable> {
 
         guard let remainder else { return }
 
-        layers[Self.rootKey] = Layer(node: remainder, stackingPath: [])
+        layers[Self.rootKey] = SceneLayer(node: remainder, stackingPath: [])
         order.insert(Self.rootKey, at: 0)
     }
 
     private mutating func extract(
-        _ node: Node<State>,
+        _ node: SceneNode<State>,
         ancestors: [String],
-        accumulatedTransform: Transform,
+        accumulatedTransform: SceneTransform,
         accumulatedOpacity: Double,
         stackingPath: [Int]
-    ) -> Node<State>? {
+    ) -> SceneNode<State>? {
         let transform = accumulatedTransform + node.transform
         let opacity = accumulatedOpacity * node.opacity
         let id = node.id
@@ -98,14 +98,14 @@ public struct LayeredScene<State: Equatable> {
         remainder.transform = transform
         remainder.opacity = opacity
 
-        layers[id] = Layer(node: remainder, stackingPath: childStackingPath)
+        layers[id] = SceneLayer(node: remainder, stackingPath: childStackingPath)
         order.append(id)
 
         return nil
     }
 
     /// Layers from back to front.
-    public var drawOrder: [Layer<State>] {
+    public var drawOrder: [SceneLayer<State>] {
         let keys = order.enumerated().sorted { lhs, rhs in
             guard let a = layers[lhs.element], let b = layers[rhs.element] else { return false }
 
@@ -135,7 +135,7 @@ public struct LayeredScene<State: Equatable> {
     // MARK: Queries
 
     /// Finds a node by its path, with its full transform.
-    func find(path: String) -> (node: Node<State>, transform: Transform)? {
+    func find(path: String) -> (node: SceneNode<State>, transform: SceneTransform)? {
         for key in order {
             guard let layer = layers[key] else { continue }
 
@@ -160,9 +160,9 @@ public struct LayeredScene<State: Equatable> {
     }
 
     private static func hitTest(
-        _ node: Node<State>,
+        _ node: SceneNode<State>,
         _ point: Vec2,
-        parentTransform: Transform,
+        parentTransform: SceneTransform,
         enclosing: Hit<State>
     ) -> Hit<State>? {
         guard case .enabled = node.hitTesting else { return nil }
@@ -220,13 +220,13 @@ public struct LayeredScene<State: Equatable> {
         return (remaining, extracted)
     }
 
-    private mutating func append(_ key: String, _ layer: Layer<State>) {
+    private mutating func append(_ key: String, _ layer: SceneLayer<State>) {
         layers[key] = layer
         order.append(key)
     }
 
     /// Replaces a layer, or adds it if the scene doesn't have it.
-    mutating func setLayer(_ layer: Layer<State>, forKey key: String) {
+    mutating func setLayer(_ layer: SceneLayer<State>, forKey key: String) {
         guard layers[key] != nil else {
             append(key, layer)
             return
@@ -251,7 +251,7 @@ public struct LayeredScene<State: Equatable> {
     }
 
     /// Applies a change to every layer.
-    func mapLayers(_ change: (inout Layer<State>) -> Void) -> LayeredScene {
+    func mapLayers(_ change: (inout SceneLayer<State>) -> Void) -> LayeredScene {
         var copy = self
 
         for key in order {
@@ -281,7 +281,7 @@ public struct LayeredScene<State: Equatable> {
     }
 
     /// Rebuilds the scene with the given layers, in a stable order.
-    func replacing(layers newLayers: [String: Layer<State>], order newOrder: [String]) -> LayeredScene {
+    func replacing(layers newLayers: [String: SceneLayer<State>], order newOrder: [String]) -> LayeredScene {
         var copy = self
         copy.layers = newLayers
         copy.order = newOrder
@@ -295,7 +295,7 @@ public struct LayeredScene<State: Equatable> {
         for key in order {
             guard let layer = layers[key] else { continue }
 
-            copy.setLayer(Layer(node: layer.node.retyped(), stackingPath: layer.stackingPath), forKey: key)
+            copy.setLayer(SceneLayer(node: layer.node.retyped(), stackingPath: layer.stackingPath), forKey: key)
         }
 
         copy.descendants = descendants

@@ -1,8 +1,10 @@
 name: Site and docs
 
+# The site tracks releases, not main, so that it always describes what
+# people can install.
 on:
   push:
-    branches: ["main"]
+    tags: ["*"]
   workflow_dispatch:
 
 permissions:
@@ -16,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 

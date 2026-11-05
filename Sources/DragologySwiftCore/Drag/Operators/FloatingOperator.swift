@@ -29,8 +29,8 @@ private enum Floating {
 
 /// Lifts the dragged element out of the inner preview, and pins it to
 /// the pointer. The rest of the preview becomes the backdrop.
-final class FloatingOperator<State: Equatable>: Operator<State> {
-    private let inner: Operator<State>
+final class FloatingOperator<State: Equatable>: DragOperator<State> {
+    private let inner: DragOperator<State>
     private let options: FloatingOptions<State>
     private let draggedID: String
     /// The element, moved to the origin. Kept for frames whose preview
@@ -53,7 +53,7 @@ final class FloatingOperator<State: Equatable>: Operator<State> {
         let innerResult = inner.run(frame)
 
         var result = innerResult
-        result.preview = Lazy { [self] in
+        result.preview = LazyPreview { [self] in
             floatingPreview(backdrop: innerResult.preview.value, pointer: frame.pointer)
         }
 

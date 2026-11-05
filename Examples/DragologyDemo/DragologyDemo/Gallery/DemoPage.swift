@@ -16,7 +16,7 @@ struct DemoPage<State: Equatable>: View {
     let note: String
     let size: CGSize
     var modes: [String] = []
-    let draggable: (Int) -> Draggable<State>
+    let draggable: (Int) -> DragScene<State>
     let summary: (State) -> String
     /// Set for modes that each start from their own state.
     var stateForMode: ((Int) -> State)?
@@ -30,7 +30,7 @@ struct DemoPage<State: Equatable>: View {
         size: CGSize,
         initial: State,
         modes: [String] = [],
-        draggable: @escaping (Int) -> Draggable<State>,
+        draggable: @escaping (Int) -> DragScene<State>,
         summary: @escaping (State) -> String,
         stateForMode: ((Int) -> State)? = nil
     ) {
@@ -81,7 +81,7 @@ struct DemoPage<State: Equatable>: View {
                 }
 
                 // Rebuilding on a mode change swaps in the new draggable.
-                DraggableCanvas(state: $state, draggable: draggable(mode))
+                DragCanvas(state: $state, scene: draggable(mode))
                     .id(mode)
                     .frame(width: size.width, height: size.height)
                     .scaleEffect(scale, anchor: .topLeading)
@@ -105,7 +105,7 @@ extension DemoPage {
         note: String,
         size: CGSize,
         initial: State,
-        draggable: @escaping Draggable<State>,
+        draggable: @escaping DragScene<State>,
         summary: @escaping (State) -> String
     ) {
         self.init(
@@ -121,18 +121,18 @@ extension DemoPage {
 
 /// Colors shared across the gallery.
 enum Ink {
-    static let outline = RGBA(hex: 0xCBD5E1)
-    static let faint = RGBA(hex: 0xE5E7EB)
-    static let muted = RGBA(hex: 0x9CA3AF)
-    static let text = RGBA(hex: 0x374151)
-    static let blue = RGBA(hex: 0x3B82F6)
-    static let red = RGBA(hex: 0xEF4444)
-    static let green = RGBA(hex: 0x22C55E)
-    static let amber = RGBA(hex: 0xF59E0B)
-    static let purple = RGBA(hex: 0x8B5CF6)
-    static let cyan = RGBA(hex: 0x06B6D4)
-    static let pink = RGBA(hex: 0xEC4899)
-    static let panel = RGBA(hex: 0xF3F4F6)
+    static let outline = SceneColor(hex: 0xCBD5E1)
+    static let faint = SceneColor(hex: 0xE5E7EB)
+    static let muted = SceneColor(hex: 0x9CA3AF)
+    static let text = SceneColor(hex: 0x374151)
+    static let blue = SceneColor(hex: 0x3B82F6)
+    static let red = SceneColor(hex: 0xEF4444)
+    static let green = SceneColor(hex: 0x22C55E)
+    static let amber = SceneColor(hex: 0xF59E0B)
+    static let purple = SceneColor(hex: 0x8B5CF6)
+    static let cyan = SceneColor(hex: 0x06B6D4)
+    static let pink = SceneColor(hex: 0xEC4899)
+    static let panel = SceneColor(hex: 0xF3F4F6)
 
     static let series = [blue, cyan, green, amber, purple, pink, red]
 }

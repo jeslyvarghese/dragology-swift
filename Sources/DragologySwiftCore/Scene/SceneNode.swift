@@ -8,7 +8,7 @@ public enum ZIndex: Equatable, Sendable {
 }
 
 /// Whether animated transitions apply to a node's layer.
-public enum TransitionPolicy: Sendable {
+public enum SceneTransitionPolicy: Sendable {
     case animated
     /// Always shows the latest position, for things tracking a finger.
     case immediate
@@ -34,32 +34,35 @@ public enum EmergeMode: Sendable {
 /// One element of a scene: Dragology's equivalent of an SVG element.
 ///
 /// SwiftUI views are opaque, so they can't be rendered speculatively,
-/// measured, or blended. A `Node` tree is plain data that can.
-public struct Node<State: Equatable> {
+/// measured, or blended. A `SceneNode` tree is plain data that can.
+public struct SceneNode<State: Equatable> {
     /// Identity across renders. Nodes with an id become separate layers,
     /// which can be blended, re-parented, and restacked independently.
     public var id: String?
     /// Pins this node's slot among its siblings, without making a layer.
     public var key: String?
-    public var transform: Transform = .identity
+    public var transform: SceneTransform = .identity
     public var opacity: Double = 1
     public var zIndex: ZIndex = .relative(0)
-    public var shape: Shape = .none
-    public var style = Style()
-    public var children: [Node] = []
+    public var shape: SceneShape = .none
+    public var style = SceneStyle()
+    public var children: [SceneNode] = []
     public var onDrag: (() -> DragSpec<State>)?
     public var onTap: (() -> Void)?
-    public var transitionPolicy: TransitionPolicy = .animated
+    public var transitionPolicy: SceneTransitionPolicy = .animated
     public var hitTesting: HitTesting = .enabled
     /// The layer this one grows out of, when a blend has no earlier
     /// version of it. Without this, a new layer simply fades in.
     public var emergeOrigin: String?
     public var emergeMode: EmergeMode = .scale
+    /// What a host draws in a `.slot`. It's opaque here: the core only
+    /// carries it along, which keeps it free of any UI framework.
+    public var hostedContent: Any?
 
-    /// A stable address, for dragged nodes without an id.
-    var path = ""
+    /// A stable address, for nodes without an id.
+    public internal(set) var path = ""
 
-    public init(shape: Shape = .none, children: [Node] = []) {
+    public init(shape: SceneShape = .none, children: [SceneNode] = []) {
         self.shape = shape
         self.children = children
     }
@@ -67,38 +70,38 @@ public struct Node<State: Equatable> {
 
 // MARK: - Modifiers
 
-extension Node {
-    private func with(_ change: (inout Node) -> Void) -> Node {
+extension SceneNode {
+    private func with(_ change: (inout SceneNode) -> Void) -> SceneNode {
         var copy = self
         change(&copy)
         return copy
     }
 
-    public func id(_ id: String) -> Node { with { $0.id = id } }
-    public func key(_ key: String) -> Node { with { $0.key = key } }
-    public func transform(_ transform: Transform) -> Node { with { $0.transform = transform } }
-    public func opacity(_ opacity: Double) -> Node { with { $0.opacity = opacity } }
-    public func zIndex(_ zIndex: ZIndex) -> Node { with { $0.zIndex = zIndex } }
-    public func fill(_ color: RGBA?) -> Node { with { $0.style.fill = color } }
+    public func id(_ id: String) -> SceneNode { with { $0.id = id } }
+    public func key(_ key: String) -> SceneNode { with { $0.key = key } }
+    public func transform(_ transform: SceneTransform) -> SceneNode { with { $0.transform = transform } }
+    public func opacity(_ opacity: Double) -> SceneNode { with { $0.opacity = opacity } }
+    public func zIndex(_ zIndex: ZIndex) -> SceneNode { with { $0.zIndex = zIndex } }
+    public func fill(_ color: SceneColor?) -> SceneNode { with { $0.style.fill = color } }
 
-    public func stroke(_ color: RGBA?, lineWidth: Double = 1) -> Node {
+    public func stroke(_ color: SceneColor?, lineWidth: Double = 1) -> SceneNode {
         with {
             $0.style.stroke = color
             $0.style.lineWidth = lineWidth
         }
     }
 
-    public func hitTesting(_ hitTesting: HitTesting) -> Node { with { $0.hitTesting = hitTesting } }
+    public func hitTesting(_ hitTesting: HitTesting) -> SceneNode { with { $0.hitTesting = hitTesting } }
 
     /// Makes this node draggable. The closure runs when a drag starts.
-    public func onDrag(_ spec: @escaping () -> DragSpec<State>) -> Node {
+    public func onDrag(_ spec: @escaping () -> DragSpec<State>) -> SceneNode {
         with { $0.onDrag = spec }
     }
 
-    public func onTap(_ action: @escaping () -> Void) -> Node { with { $0.onTap = action } }
+    public func onTap(_ action: @escaping () -> Void) -> SceneNode { with { $0.onTap = action } }
 
     /// Makes this layer grow out of `origin` when it first appears.
-    public func emergeFrom(_ origin: String?, mode: EmergeMode = .scale) -> Node {
+    public func emergeFrom(_ origin: String?, mode: EmergeMode = .scale) -> SceneNode {
         with {
             $0.emergeOrigin = origin
             $0.emergeMode = mode
@@ -110,48 +113,48 @@ extension Node {
 
 /// Builds a node's children, with the usual `if` and `for` support.
 @resultBuilder
-public enum NodeBuilder<State: Equatable> {
-    public static func buildExpression(_ node: Node<State>) -> [Node<State>] { [node] }
-    public static func buildBlock(_ parts: [Node<State>]...) -> [Node<State>] { parts.flatMap { $0 } }
-    public static func buildArray(_ parts: [[Node<State>]]) -> [Node<State>] { parts.flatMap { $0 } }
-    public static func buildOptional(_ part: [Node<State>]?) -> [Node<State>] { part ?? [] }
-    public static func buildEither(first part: [Node<State>]) -> [Node<State>] { part }
-    public static func buildEither(second part: [Node<State>]) -> [Node<State>] { part }
+public enum SceneNodeBuilder<State: Equatable> {
+    public static func buildExpression(_ node: SceneNode<State>) -> [SceneNode<State>] { [node] }
+    public static func buildBlock(_ parts: [SceneNode<State>]...) -> [SceneNode<State>] { parts.flatMap { $0 } }
+    public static func buildArray(_ parts: [[SceneNode<State>]]) -> [SceneNode<State>] { parts.flatMap { $0 } }
+    public static func buildOptional(_ part: [SceneNode<State>]?) -> [SceneNode<State>] { part ?? [] }
+    public static func buildEither(first part: [SceneNode<State>]) -> [SceneNode<State>] { part }
+    public static func buildEither(second part: [SceneNode<State>]) -> [SceneNode<State>] { part }
 }
 
-public func group<State>(@NodeBuilder<State> _ content: () -> [Node<State>]) -> Node<State> {
-    Node(children: content())
+public func SceneGroup<State>(@SceneNodeBuilder<State> _ content: () -> [SceneNode<State>]) -> SceneNode<State> {
+    SceneNode(children: content())
 }
 
-public func rect<State>(width: Double, height: Double, cornerRadius: Double = 0) -> Node<State> {
-    Node(shape: .rect(size: Vec2(width, height), cornerRadius: cornerRadius))
+public func SceneRect<State>(width: Double, height: Double, cornerRadius: Double = 0) -> SceneNode<State> {
+    SceneNode(shape: .rect(size: Vec2(width, height), cornerRadius: cornerRadius))
 }
 
-public func circle<State>(radius: Double) -> Node<State> {
-    Node(shape: .circle(radius: radius))
+public func SceneCircle<State>(radius: Double) -> SceneNode<State> {
+    SceneNode(shape: .circle(radius: radius))
 }
 
-public func line<State>(from: Vec2, to: Vec2) -> Node<State> {
-    Node(shape: .line(from: from, to: to))
+public func SceneLine<State>(from: Vec2, to: Vec2) -> SceneNode<State> {
+    SceneNode(shape: .line(from: from, to: to))
 }
 
-public func path<State>(_ commands: [PathCommand]) -> Node<State> {
-    Node(shape: .path(commands))
+public func ScenePath<State>(_ commands: [PathCommand]) -> SceneNode<State> {
+    SceneNode(shape: .path(commands))
 }
 
-public func label<State>(_ string: String, size: Double) -> Node<State> {
-    Node(shape: .text(string, size: size))
+public func SceneText<State>(_ string: String, size: Double) -> SceneNode<State> {
+    SceneNode(shape: .text(string, size: size))
 }
 
 // MARK: - Changing state types
 
-extension Node {
+extension SceneNode {
     /// This tree for a different state type. `lift` converts drag
     /// handlers; without it they're dropped, which suits inert previews.
     func retyped<Other>(
         lift: ((@escaping () -> DragSpec<State>) -> () -> DragSpec<Other>)? = nil
-    ) -> Node<Other> {
-        var copy = Node<Other>(shape: shape, children: children.map { $0.retyped(lift: lift) })
+    ) -> SceneNode<Other> {
+        var copy = SceneNode<Other>(shape: shape, children: children.map { $0.retyped(lift: lift) })
 
         copy.id = id
         copy.key = key
@@ -164,6 +167,7 @@ extension Node {
         copy.hitTesting = hitTesting
         copy.emergeOrigin = emergeOrigin
         copy.emergeMode = emergeMode
+        copy.hostedContent = hostedContent
         copy.path = path
 
         if let onDrag, let lift {
@@ -176,17 +180,17 @@ extension Node {
 
 // MARK: - Tree queries
 
-extension Node {
+extension SceneNode {
     private static var rootPath: String { "/" }
     private static var pathSeparator: String { "/" }
 
     /// Gives every node a stable path. An id restarts the path, so a node
     /// keeps its address when it moves around the tree.
-    func assigningPaths() -> Node {
+    func assigningPaths() -> SceneNode {
         assigningPaths(at: Self.rootPath)
     }
 
-    private func assigningPaths(at inheritedPath: String) -> Node {
+    private func assigningPaths(at inheritedPath: String) -> SceneNode {
         var copy = self
         copy.path = id.map { $0 + Self.pathSeparator } ?? inheritedPath
 
@@ -208,9 +212,9 @@ extension Node {
 
     /// Finds the first match, along with its full transform from the root.
     func find(
-        parentTransform: Transform = .identity,
-        where matches: (Node) -> Bool
-    ) -> (node: Node, transform: Transform)? {
+        parentTransform: SceneTransform = .identity,
+        where matches: (SceneNode) -> Bool
+    ) -> (node: SceneNode, transform: SceneTransform)? {
         let accumulated = parentTransform + transform
 
         if matches(self) {
@@ -227,7 +231,7 @@ extension Node {
     }
 
     /// The box around this node and its children, in its parent's space.
-    func bounds(parentTransform: Transform = .identity) -> Bounds? {
+    func bounds(parentTransform: SceneTransform = .identity) -> Bounds? {
         let accumulated = parentTransform + transform
         let own = shape.localBounds.map { $0.transformed(by: accumulated) }
 

@@ -72,7 +72,7 @@ struct ControlsScreen: View {
                 identifier: "toggle",
                 height: Layout.toggleHeight
             ) {
-                DraggableCanvas(state: $toggleState, draggable: toggleSwitch)
+                DragCanvas(state: $toggleState, scene: toggleSwitch)
             }
 
             demo(
@@ -80,7 +80,7 @@ struct ControlsScreen: View {
                 identifier: "slider",
                 height: Layout.sliderHeight
             ) {
-                DraggableCanvas(state: $sliderState, draggable: slider)
+                DragCanvas(state: $sliderState, scene: slider)
             }
 
             demo(
@@ -88,7 +88,7 @@ struct ControlsScreen: View {
                 identifier: "dial",
                 height: Layout.dialHeight
             ) {
-                DraggableCanvas(state: $dialState, draggable: dial)
+                DragCanvas(state: $dialState, scene: dial)
             }
 
             demo(
@@ -96,7 +96,7 @@ struct ControlsScreen: View {
                 identifier: "list",
                 height: Layout.listHeight
             ) {
-                DraggableCanvas(state: $listState, draggable: reorderableList)
+                DragCanvas(state: $listState, scene: reorderableList)
             }
         }
         .padding()

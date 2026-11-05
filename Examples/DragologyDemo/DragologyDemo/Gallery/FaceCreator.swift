@@ -43,11 +43,11 @@ private enum Face {
     static let curveEndZone = 0.4
     static let perimeterEndZone = 0.35
 
-    static let skin = RGBA(hex: 0xFFE0B2)
-    static let skinEdge = RGBA(hex: 0xE6A756)
-    static let eye = RGBA(hex: 0x333333)
-    static let mouth = RGBA(hex: 0xC0392B)
-    static let activeEndpoint = RGBA(hex: 0xE74C3C)
+    static let skin = SceneColor(hex: 0xFFE0B2)
+    static let skinEdge = SceneColor(hex: 0xE6A756)
+    static let eye = SceneColor(hex: 0x333333)
+    static let mouth = SceneColor(hex: 0xC0392B)
+    static let activeEndpoint = SceneColor(hex: 0xE74C3C)
 
     static let faceZ = 0
     static let featureZ = 1
@@ -243,13 +243,13 @@ private func featureConstraints(_ state: FaceState) -> [Double] {
         let here = curve.point(at: Double(index) / Double(count))
         let next = curve.point(at: Double(index + 1) / Double(count))
 
-        return Constraint.lessThan(here.x, next.x)
+        return DragConstraint.lessThan(here.x, next.x)
     }
 
-    return Constraint.moreThan(state.eyeDx, Face.minEyeSpacing)
-        + Constraint.moreThan(state.mouthDx, Face.minMouthHalfWidth)
-        + Constraint.lessThan(state.control1.length, Face.maxControlOffset)
-        + Constraint.lessThan(state.control2.length, Face.maxControlOffset)
+    return DragConstraint.moreThan(state.eyeDx, Face.minEyeSpacing)
+        + DragConstraint.moreThan(state.mouthDx, Face.minMouthHalfWidth)
+        + DragConstraint.lessThan(state.control1.length, Face.maxControlOffset)
+        + DragConstraint.lessThan(state.control2.length, Face.maxControlOffset)
         + advancing
 }
 
@@ -278,7 +278,7 @@ private func shapeConstraints(_ state: FaceState) -> [Double] {
 
         if step < -Double.pi { step += fullTurn }
 
-        return Constraint.moreThan(step, minimumStep)
+        return DragConstraint.moreThan(step, minimumStep)
     }
 }
 
@@ -532,9 +532,9 @@ private struct FaceDrags {
 
         return d
             .vary(state, paths: [parameters[index]], constraint: { candidate in
-                let radii = Constraint.moreThan(candidate.radiusX, Face.minFaceRadius)
-                    + Constraint.moreThan(candidate.radiusTop, Face.minFaceRadius)
-                    + Constraint.moreThan(candidate.radiusBottom, Face.minFaceRadius)
+                let radii = DragConstraint.moreThan(candidate.radiusX, Face.minFaceRadius)
+                    + DragConstraint.moreThan(candidate.radiusTop, Face.minFaceRadius)
+                    + DragConstraint.moreThan(candidate.radiusBottom, Face.minFaceRadius)
 
                 return mode.constrainsShape ? radii + shapeConstraints(candidate) : radii
             })
@@ -551,14 +551,14 @@ private struct FaceDrags {
 
 // MARK: - Rendering
 
-func faceCreator(mode: FaceMode) -> Draggable<FaceState> {
+func faceCreator(mode: FaceMode) -> DragScene<FaceState> {
     { context in
         let state = context.state
-        let drags = FaceDrags(state: state, d: context.d, mode: mode)
+        let drags = FaceDrags(state: state, d: context.drag, mode: mode)
         let curves = state.outline
 
-        return group {
-            path(outlineCommands(curves))
+        return SceneGroup {
+            ScenePath(outlineCommands(curves))
                 .id("face")
                 .fill(Face.skin)
                 .stroke(Face.skinEdge, lineWidth: Face.faceStroke)
@@ -567,7 +567,7 @@ func faceCreator(mode: FaceMode) -> Draggable<FaceState> {
             outlineHandles(curves, context: context, drags: drags)
 
             for (id, position) in [("left-eye", state.leftEye), ("right-eye", state.rightEye)] {
-                circle(radius: Face.eyeRadius)
+                SceneCircle(radius: Face.eyeRadius)
                     .id(id)
                     .fill(Face.eye)
                     .transform(.translate(position))
@@ -580,7 +580,7 @@ func faceCreator(mode: FaceMode) -> Draggable<FaceState> {
             mouthHandles(state, context: context, drags: drags)
 
             for (id, position) in [("mouth-left", state.mouthLeft), ("mouth-right", state.mouthRight)] {
-                circle(radius: Face.endpointRadius)
+                SceneCircle(radius: Face.endpointRadius)
                     .id(id)
                     .fill(context.draggedID == id ? Face.activeEndpoint : Face.mouth)
                     .stroke(Face.mouth, lineWidth: Face.endpointLineWidth)
@@ -600,10 +600,10 @@ private func outlineCommands(_ curves: [Cubic]) -> [PathCommand] {
     return [.move(first.start)] + segments + [.close]
 }
 
-private func mouth(_ state: FaceState) -> Node<FaceState> {
+private func mouth(_ state: FaceState) -> SceneNode<FaceState> {
     let curve = state.mouthCurve
 
-    return path([.move(curve.start), .cubic(control1: curve.control1, control2: curve.control2, end: curve.end)])
+    return ScenePath([.move(curve.start), .cubic(control1: curve.control1, control2: curve.control2, end: curve.end)])
         .id("mouth")
         .stroke(Face.mouth, lineWidth: Face.mouthStroke)
         .zIndex(.relative(Face.featureZ))
@@ -614,9 +614,9 @@ private func mouth(_ state: FaceState) -> Node<FaceState> {
 /// so eyes and mouth win any contest for a touch.
 private func outlineHandles(
     _ curves: [Cubic],
-    context: RenderContext<FaceState>,
+    context: SceneContext<FaceState>,
     drags: FaceDrags
-) -> Node<FaceState> {
+) -> SceneNode<FaceState> {
     let state = context.state
     let largest = max(state.radiusX, state.radiusTop, state.radiusBottom)
     let hitRadius = max(Face.minPerimeterHitRadius, largest * Face.perimeterHitShare)
@@ -624,13 +624,13 @@ private func outlineHandles(
         Double($0) / Double(Face.perimeterHandleCount + 1)
     }
 
-    return group {
+    return SceneGroup {
         for (segment, curve) in curves.enumerated() {
             for (index, t) in positions.enumerated() {
                 let id = "outline-\(segment)-\(index)"
                 let isDragged = context.draggedID == id
 
-                circle(radius: isDragged ? Face.draggedPerimeterRadius : hitRadius)
+                SceneCircle(radius: isDragged ? Face.draggedPerimeterRadius : hitRadius)
                     .id(id)
                     .fill(isDragged ? Face.skinEdge.withOpacity(Face.handleOpacity) : .clear)
                     .transform(.translate(curve.point(at: t)))
@@ -643,16 +643,16 @@ private func outlineHandles(
 
 private func mouthHandles(
     _ state: FaceState,
-    context: RenderContext<FaceState>,
+    context: SceneContext<FaceState>,
     drags: FaceDrags
-) -> Node<FaceState> {
-    group {
+) -> SceneNode<FaceState> {
+    SceneGroup {
         for index in 1...Face.mouthHandleCount {
             let t = Double(index) / Double(Face.mouthHandleCount + 1)
             let id = "mouth-\(index)"
             let isDragged = context.draggedID == id
 
-            circle(radius: isDragged ? Face.draggedMouthHandleRadius : Face.mouthHandleRadius)
+            SceneCircle(radius: isDragged ? Face.draggedMouthHandleRadius : Face.mouthHandleRadius)
                 .id(id)
                 .fill(isDragged ? Face.mouth.withOpacity(Face.handleOpacity) : .clear)
                 .transform(.translate(state.mouthCurve.point(at: t)))

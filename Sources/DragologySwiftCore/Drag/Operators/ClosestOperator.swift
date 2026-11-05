@@ -15,10 +15,10 @@ public struct ClosestOptions: Sendable {
 }
 
 /// Runs every option, and follows the one with the lowest gap.
-final class ClosestOperator<State: Equatable>: Operator<State> {
+final class ClosestOperator<State: Equatable>: DragOperator<State> {
     private static var emptySegment: String { "none" }
 
-    private let options: [Operator<State>]
+    private let options: [DragOperator<State>]
     private let settings: ClosestOptions
     /// Where the dragged element starts, for `lockPast`.
     private let home: Vec2?
@@ -89,7 +89,7 @@ final class ClosestOperator<State: Equatable>: Operator<State> {
         let context = self.context
 
         var result = DragResult(
-            preview: Lazy { context.render(context.startState) },
+            preview: LazyPreview { context.render(context.startState) },
             dropState: context.startState,
             gap: .infinity
         )
