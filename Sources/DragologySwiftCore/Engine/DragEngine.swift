@@ -42,6 +42,11 @@ public final class DragEngine<State: Equatable> {
     public private(set) var scene: LayeredScene<State>
     /// True while the host needs to keep calling `tick`.
     public private(set) var needsFrames = false
+    /// Counts the changes that came from the user: drops, and `setState`
+    /// calls from the scene. A host watches this to know when to read
+    /// `state` back. Watching `state` itself would also catch changes the
+    /// host made, and writing those back can overwrite newer ones.
+    public private(set) var userChangeCount = 0
 
     @ObservationIgnored private let sceneFunction: DragScene<State>
     @ObservationIgnored private let dragThreshold: Double
@@ -153,6 +158,7 @@ public final class DragEngine<State: Equatable> {
 
         phase = .idle
         state = result.dropState
+        userChangeCount += 1
         refreshIdleScene()
         tick(now: now)
     }
@@ -288,6 +294,7 @@ public final class DragEngine<State: Equatable> {
     private func refreshIdleScene() {
         idleScene = Self.interactiveRender(sceneFunction, state) { [weak self] newState, transition in
             self?.setState(newState, transition: transition, now: Self.currentTime)
+            self?.userChangeCount += 1
         }
         scene = idleScene
     }

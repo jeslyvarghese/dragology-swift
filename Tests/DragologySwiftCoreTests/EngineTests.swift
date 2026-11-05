@@ -288,6 +288,24 @@ import Testing
         #expect(engine.state == Counter())
     }
 
+    @Test func onlyUserChangesAreCounted() {
+        let engine = DragEngine(state: Counter(), scene: Self.tappable)
+
+        // A change from the host mustn't be echoed back to it.
+        engine.setState(Counter(position: 10), transition: nil, now: 0)
+        #expect(engine.userChangeCount == 0)
+
+        // A tap that calls `setState` from the scene is the user's.
+        engine.pointerDown(at: Vec2(50, 50), now: 0)
+        engine.pointerUp(at: Vec2(50, 50), now: 0)
+        #expect(engine.userChangeCount == 1)
+
+        // So is a drop.
+        drag(engine, from: Vec2(50, 50), through: [Vec2(80, 50)])
+        engine.pointerUp(at: Vec2(80, 50), now: 0)
+        #expect(engine.userChangeCount == 2)
+    }
+
     @Test func externalStateAnimates() {
         let engine = DragEngine(state: Counter(), scene: Self.tappable)
 

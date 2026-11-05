@@ -10,6 +10,7 @@ public struct DragCanvas<State: Equatable>: View {
     @Binding private var state: State
     @SwiftUI.State private var engine: DragEngine<State>
     @Environment(\.dragActivation) private var activation
+    @Environment(\.externalStateTransition) private var externalTransition
 
     public init(state: Binding<State>, scene: @escaping DragScene<State>) {
         _state = state
@@ -26,12 +27,12 @@ public struct DragCanvas<State: Equatable>: View {
                 }
         }
         .contentShape(Rectangle())
-        .pointerEvents(activation: activation, engine: engine)
+        .pointerEvents(activation: activation ?? .immediate, engine: engine)
         .onChange(of: state) { _, newState in
-            engine.setState(newState, now: Date.timeIntervalSinceReferenceDate)
+            engine.setState(newState, transition: externalTransition, now: Date.timeIntervalSinceReferenceDate)
         }
-        .onChange(of: engine.state) { _, newState in
-            state = newState
+        .onChange(of: engine.userChangeCount) {
+            state = engine.state
         }
     }
 }

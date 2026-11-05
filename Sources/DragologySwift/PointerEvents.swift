@@ -2,14 +2,18 @@ import SwiftUI
 
 /// When a touch turns into a drag.
 public enum DragActivation: Sendable, Equatable {
-    /// As soon as the finger moves. The default.
+    /// As soon as the finger moves. The default for a `DragCanvas`.
     case immediate
     /// After a short hold, so that a parent `ScrollView` can still scroll.
+    /// The default for a `DragList`.
     case longPress(minimumDuration: TimeInterval = 0.3)
 }
 
 extension EnvironmentValues {
-    @Entry var dragActivation = DragActivation.immediate
+    /// Nil leaves the choice to each kind of view.
+    @Entry var dragActivation: DragActivation?
+    /// How a canvas animates a change of state from outside.
+    @Entry var externalStateTransition: DragTransition? = .standard
 }
 
 extension View {
