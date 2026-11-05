@@ -36,6 +36,8 @@ enum DemoCatalog {
         DemoSection(title: "Basics", demos: [
             DemoEntry("Controls", "between, vary, closest") { ControlsScreen() },
 
+            DemoEntry("Drag List", "DragList") { DragListScreen() },
+
             DemoEntry("Real SwiftUI Views", "DragItem, dragActivation") { RealViewsScreen() },
 
             DemoEntry("Three States", "closest, between, withFloating") {

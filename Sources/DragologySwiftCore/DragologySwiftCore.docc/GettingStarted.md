@@ -1,6 +1,6 @@
 # Getting Started
 
-Make a toggle switch you can drag.
+Reorder a list in one line, then build a drag of your own.
 
 ## Add the package
 
@@ -12,6 +12,28 @@ In Xcode, choose **File > Add Package Dependencies** and enter
 ```
 
 Then depend on the `DragologySwift` product. It needs iOS 26 or macOS 26.
+
+## Reorder a list
+
+If you have an array of `Identifiable` items, `DragList` is all you need. Your rows stay
+ordinary SwiftUI views:
+
+```swift
+DragList($tasks) { task in
+    TaskRow(task: task)
+}
+```
+
+Rows size themselves, keep their `@State`, and their buttons and toggles keep working. A long
+press picks up a row, so the list can sit in a `ScrollView`.
+
+To change how a dragged row behaves, add `.dragListStyle(.sliding)` or `.dragListStyle(.snapping)`.
+The default is `.floating()`, where the row follows the finger and the others make room.
+
+## Build your own drag
+
+For anything beyond a list, you describe your state and draw it, and the rest of this article
+shows how, with a toggle switch.
 
 ## Describe your state
 

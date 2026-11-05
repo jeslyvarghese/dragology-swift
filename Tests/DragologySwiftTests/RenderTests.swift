@@ -10,6 +10,41 @@ private enum Fixture {
     static let tolerance = 2
 }
 
+@Suite struct DragListLayoutTests {
+    private func layout() -> DragListLayout<String> {
+        var layout = DragListLayout(ids: ["a", "b", "c"], spacing: 10)
+        layout.heights = ["a": 50, "b": 100, "c": 30]
+        return layout
+    }
+
+    @Test func rowsStackByTheirOwnHeights() {
+        let layout = layout()
+
+        #expect(layout.offset(at: 0) == 0)
+        #expect(layout.offset(at: 1) == 60)
+        #expect(layout.offset(at: 2) == 170)
+        #expect(layout.totalHeight == 200)
+    }
+
+    @Test func unmeasuredRowsUseAnEstimate() {
+        let layout = DragListLayout(ids: ["a", "b"], spacing: 0)
+
+        #expect(layout.height(of: "a") > 0)
+        #expect(layout.offset(at: 1) == layout.height(of: "a"))
+    }
+
+    @Test func movingKeepsHeightsWithTheirRows() {
+        let moved = layout().moving(from: 0, to: 2)
+
+        #expect(moved.ids == ["b", "c", "a"])
+        #expect(moved.offset(at: 2) == 150)
+    }
+
+    @Test func anEmptyListHasNoHeight() {
+        #expect(DragListLayout<String>(ids: [], spacing: 10).totalHeight == 0)
+    }
+}
+
 /// The toggle from the docs and the site, word for word.
 private struct ToggleState: Equatable {
     var isOn = false

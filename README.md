@@ -22,7 +22,18 @@ Requires iOS 26 or macOS 26.
 .package(url: "https://github.com/jeslyvarghese/dragology-swift", from: "0.3.0")
 ```
 
-## Example
+## Reorder a list
+
+If you have an array of `Identifiable` items, this is the whole integration. Your rows stay
+ordinary SwiftUI views, and they size themselves:
+
+```swift
+DragList($tasks) { task in
+    TaskRow(task: task)
+}
+```
+
+## Build your own drag
 
 ```swift
 import DragologySwift

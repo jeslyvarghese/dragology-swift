@@ -3,7 +3,9 @@
 Notes for coding agents. The full guide is at
 https://dragology.quadratic.xyz/docs/documentation/dragologyswiftcore.
 
-A scene is a pure function from state to a `SceneNode` tree. Elements declare the states they can
+For a reorderable list, use `DragList($items) { item in Row(item: item) }`, and stop here.
+
+For anything else, a scene is a pure function from state to a `SceneNode` tree. Elements declare the states they can
 be dragged to, and the engine does the rest.
 
 ```swift

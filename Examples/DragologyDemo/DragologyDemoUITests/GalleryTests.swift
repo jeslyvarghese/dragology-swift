@@ -126,6 +126,75 @@ final class GalleryTests: XCTestCase {
         XCTAssertEqual(app.staticTexts["realViewsOrder"].label, "Apples,Bananas,Cherries,Dates")
     }
 
+    // MARK: Drag list
+
+    private func expectOrder(_ expected: String) {
+        let order = app.staticTexts["dragListOrder"]
+        let matches = NSPredicate { _, _ in order.label == expected }
+        let expectation = XCTNSPredicateExpectation(predicate: matches, object: nil)
+
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: Timing.settle), .completed, order.label)
+    }
+
+    func testDragListRowsSizeThemselves() {
+        open("Drag List")
+
+        let short = app.staticTexts["task-Call"]
+        let tall = app.staticTexts["task-Plan"]
+        let next = app.staticTexts["task-Pack"]
+        XCTAssertTrue(tall.waitForExistence(timeout: Timing.settle))
+
+        // The long row wraps, and the next row clears it.
+        XCTAssertGreaterThan(tall.frame.height, short.frame.height * 1.5)
+        XCTAssertGreaterThan(next.frame.minY, tall.frame.maxY)
+    }
+
+    func testDragListReorders() {
+        open("Drag List")
+        expectOrder("Call,Plan,Pack,Read")
+
+        let row = app.staticTexts["task-Call"]
+        XCTAssertTrue(row.waitForExistence(timeout: Timing.settle))
+
+        let target = app.staticTexts["task-Pack"].frame.midY
+        let start = row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+
+        start.press(forDuration: 0.6, thenDragTo: start.withOffset(CGVector(dx: 0, dy: target - row.frame.midY)))
+
+        expectOrder("Plan,Pack,Call,Read")
+    }
+
+    func testDragListKeepsRowState() {
+        open("Drag List")
+
+        let toggle = app.switches["done-Read"].switches.firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: Timing.settle))
+        toggle.tap()
+
+        let row = app.staticTexts["task-Read"]
+        let start = row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+
+        start.press(forDuration: 0.6, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -140)))
+
+        let value = app.switches["done-Read"].value as? String
+        XCTAssertEqual(value, "1")
+    }
+
+    func testDragListScrolls() {
+        open("Drag List")
+
+        let row = app.staticTexts["task-Plan"]
+        XCTAssertTrue(row.waitForExistence(timeout: Timing.settle))
+
+        let before = row.frame.minY
+        let start = row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+
+        start.press(forDuration: 0.01, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -200)))
+
+        XCTAssertLessThan(row.frame.minY, before - 50, "The page should have scrolled.")
+        expectOrder("Call,Plan,Pack,Read")
+    }
+
     // MARK: Discrete states
 
     func testRingOfBeads() {
